@@ -1,0 +1,86 @@
+
+#File format version
+#For reading Dimacs input from sudoku clauses and sudoku puzzle
+def read_dimacs(dimacs_file):
+
+    clauses = []
+
+    #Check first two lines for the c and p lines if they are there
+
+    for i in range(2):
+        line = dimacs_file.readline()
+
+        if not ("p" or "c") in line:
+            clause = line.split()[:-1]
+            clauses.append(clause)
+
+    for line in dimacs_file:
+        clause = line.split()[:-1]
+        clauses.append(clause)
+
+        #print(list(map(int,clause)))   #In case to convert every element to actual integer
+
+    return clauses
+
+#----------------------------------------------------------------------------------------------
+
+
+#String format version, so dont save sudoku puzzles to files
+#For reading Dimacs input from sudoku clauses and sudoku puzzle
+def read_dimacs2(dimacs_format):
+
+    clauses = []
+
+    #Check first two lines for the c and p lines if they are there
+    full_text = dimacs_format.splitlines()
+
+    for line in full_text[:2]:
+
+        if not ("p" or "c") in line:
+            clause = line.split()[:-1]
+            clauses.append(clause)
+
+    for line in full_text[2:]:
+        clause = line.split()[:-1]
+        clauses.append(clause)
+
+        #print(list(map(int,clause)))   #In case to convert every element to actual integer
+
+    return clauses
+
+#---------------------------------------------------------------------------------------
+
+
+def encode_dimacs(sudoku_puzzles):
+
+    puzzles = []
+
+    for puzzle in sudoku_puzzles: #Every puzzle is a line of 81 characters
+        encoded_puzzle = ""
+        row = 1
+        column = 1
+        for element in list(puzzle)[:-1]: #Dont include "\n"
+            if element != ".":
+                clause_line = str(row) + str(column) + element + " 0\n"
+                encoded_puzzle += clause_line
+            if column < 9:  #Assuming the 81 characters are indicating from left to right going down each row
+                column += 1
+            else:
+                row += 1
+                column = 1
+        puzzles.append(encoded_puzzle)
+        break #Testing on 1 puzzle only now
+
+    return puzzles
+
+if __name__ == "__main__":
+    sudoku_rules = open("./sudoku-rules.txt","r")
+    rules_clauses = read_dimacs(sudoku_rules) #File format read version
+
+    sudoku_rules = open("./sudoku-rules.txt","r")
+    rules = sudoku_rules.read()
+    rules_clauses = read_dimacs2(rules) #String read version
+
+    sudoku_puzzle = open("./top95.sdk.txt", "r")
+    dimacs_puzzle = encode_dimacs(sudoku_puzzle)
+    print(dimacs_puzzle[0]) #String version
