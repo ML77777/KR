@@ -56,10 +56,7 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
 
             if literal in literal_dict:
                 id_list = literal_dict[literal]
-                for index,list_id in enumerate(id_list):
-                    if id > list_id:
-                        id_list.insert(index+1,id)
-                        break
+                id_list.append(id)
             else: id_list = [id]
             literal_dict[literal] = id_list
 
@@ -85,7 +82,7 @@ def run_dp(dimacs_file):
     no_answer = True
     while no_answer:
         #try_simplify(clauses_dict,literal_dict,assignments)
-
+    return
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
