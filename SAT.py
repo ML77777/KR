@@ -9,7 +9,7 @@ def read_dimacs(dimacs_file):
     n_variables = 0
 
     #Check first two lines for the c and p lines if they are there
-    #lines = dimacs_file.readlines()
+    lines = dimacs_file.readlines()
     for line in dimacs_file:
 
         if "p" in line:
@@ -27,11 +27,11 @@ def read_dimacs(dimacs_file):
 
 
 def store_clauses(initial_clauses):#,n_variables,n_clauses):
-    clauses_dict = {}
-    literal_dict = {}
+    clauses_dict = {} #dictionary with key = id and value = clause
+    literal_dict = {} #dictionary with key = literal and value = list of clauses in which literal occurs
     id = 1
 
-    assignments = {}
+    assignments = {} #dictionary with key = literal and value = assigned truth value
     #assignments["counter"] =  0
     counter = 0
     #assignments["order"] = []
@@ -69,26 +69,83 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
 
     return clauses_dict,literal_dict,assignments
 
-#def try_simplify(clauses_dict,literal_dict,assignments): #Check for tautology, pure literal and unit clause
-    #Run through dictionaries of literal/variables, to see if there is a pure literal and to check for tautology.
-    #Or to check for all three, just go over all clauses once and check with the dictionaries. Might be more logical
-
 def run_dp(dimacs_file):
     n_variables, n_clauses, set_clauses = read_dimacs(dimacs_file)
-    clauses_dict, literal_dict, assignments = store_clauses(set_clauses)#,n_variables,n_clauses) #Can check for unit clauses to prevent double checking
-    #process_assignments(clauses_dict,literal_dict,assignments)
+    clauses_dict, literal_dict, assignments = store_clauses(set_clauses)
 
     #Algorithm loop starts here
-    no_answer = True
-    while no_answer:
-        #try_simplify(clauses_dict,literal_dict,assignments)
-    return
+    clauses_dict, clauses_count, literal_dict, assignments, changed_literals = dp(clauses_dict, n_clauses, literal_dict, assignments)
+    
+    if clauses_count == 0:
+        return True, assignments    
+    else:
+        return False, assignments
+    
+
+### TODO: Simplify and Split steps
+def dp(clauses_dict, clauses_count, literal_dict, assignments, changed_literals, contradiction):
+    new_changed_literals = []
+    
+    #Check contradictions and simplify
+    for lit in changed_literals:
+        relevant_clauses = literal_dict[lit]
+        for clause in relevant_clauses:
+            clause = clauses_dict[clause]
+            
+            count_false = 0
+            for literal in clause:
+                if "-" in literal: 
+                    if assignments[literal[1:]] == 0:
+                        clauses_count =- 1
+                    elif assignments[literal[1:]] == 1:
+                        count_false =+ 1
+                        
+                else:
+                    if assignments[literal] == 1:
+                        clauses_count =- 1
+                    elif assignments[literal] == 0:
+                        count_false =+ 1
+            
+            #check for contradiction
+            if count_false == len(clause):
+                return clauses_dict, clauses_count, literal_dict, assignments, [], True
+        else:
+            
+    #Check stop condition
+    if clauses_count == 0:
+        return clauses_dict, clauses_count, literal_dict, assignments, [], False
+    else:
+    #Split
+        #Choose literal from the not yet assigned literals:
+            #assign literal true (or false)
+            
+            #Recursion
+            clauses_dict1, clauses_count1, literal_dict1, assignments1, changed_literals1, contradition1 = dp(clauses_dict, clauses_count, literal_dict, assignments, new_changed_literals)
+            if contradiction1 == True:
+                #give the above literal the other truth value
+                
+                #Recursion
+                clauses_dict1, clauses_count1, literal_dict1, assignments1, changed_literals1, contradition1 = dp(clauses_dict, clauses_count, literal_dict, assignments, new_changed_literals)
+            
+            if contradiction1 == True:
+                return clauses_dict1, clauses_count1, literal_dict1, assignments1, changed_literals1, contradition1
+            else:
+                return clauses_dict1, clauses_count1, literal_dict1, assignments1, changed_literals1, contradition1
+        
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        file = open("./input_file.txt","r") #For testing
+        file = open("./input_file.cnf","r") #For testing
         run_dp(file)#For testing
 
         print("Error: No arguments were given")
         sys.exit(1)
     run_dp(sys.argv[2])
+    
+    
+#######  Temporary testing function  #######
+def test_dp():
+    assignments = run_dp()
+    
+test_tp()
+    
