@@ -2,7 +2,8 @@
 #For reading Dimacs input from sudoku clauses and sudoku puzzle
 import sys
 import random
-#random.seed(43)
+import time
+import pickle
 
 def read_dimacs(dimacs_file):
 
@@ -14,7 +15,7 @@ def read_dimacs(dimacs_file):
     lines = dimacs_file.readlines()
     for line in lines:
 
-        if not line[0] == "c":
+        if not (line[0] == "c" or line[0] == "%" or line[0] == "0"):
             if line[0] == "p":
                 splitted_line = line.split()
                 n_clauses = int(splitted_line[-1])
@@ -62,7 +63,7 @@ def store_clauses(initial_clauses, n_clauses):#,n_variables,n_clauses):
                 
                 #Add 1 to the the count of negative occurences
                 if literal[1:] in lit_neg_occ:
-                    lit_neg_occ[literal[1:]] =+ 1
+                    lit_neg_occ[literal[1:]] += 1
                 else:
                     lit_neg_occ[literal[1:]] = 1
             else:
@@ -80,7 +81,7 @@ def store_clauses(initial_clauses, n_clauses):#,n_variables,n_clauses):
                 
                 #Add 1 to the the count of positive occurences
                 if literal in lit_pos_occ:
-                    lit_pos_occ[literal] =+ 1
+                    lit_pos_occ[literal] += 1
                 else:
                     lit_pos_occ[literal] = 1
             
@@ -155,19 +156,22 @@ def dp(clauses_dict, clauses_count, clauses_satisfied, literal_dict, assignments
         for clause_id in relevant_clauses:
             #if the clause is not already satisfied
             if clauses_satisfied[clause_id] == 0:
-                clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ = simplify_clause(clause_id, clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ)
-                if contradiction:
+                clauses_dict1, clauses_count1, clauses_satisfied1, assignments1, new_changed_literals1, contradiction1, unassigned_literals1, lit_pos_occ1, lit_neg_occ1 = simplify_clause(clause_id, pickle.loads(pickle.dumps(clauses_dict)), clauses_count, clauses_satisfied.copy(), assignments.copy(), new_changed_literals, contradiction, unassigned_literals.copy(), lit_pos_occ.copy(), lit_neg_occ.copy())
+                if contradiction1:
                     return assignments, True
+                else:
+                    clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ = clauses_dict1, clauses_count1, clauses_satisfied1, assignments1, new_changed_literals1, contradiction1, unassigned_literals1, lit_pos_occ1, lit_neg_occ1
     #Check stop condition
     if clauses_count == 0:
         return assignments, False
     elif len(new_changed_literals) > 0:
-        assignments, contradiction = dp(clauses_dict, clauses_count, clauses_satisfied, literal_dict, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ)
+        assignments, contradiction = dp(pickle.loads(pickle.dumps(clauses_dict)), clauses_count, clauses_satisfied.copy(), literal_dict.copy(), assignments.copy(), new_changed_literals, contradiction, unassigned_literals.copy(), lit_pos_occ.copy(), lit_neg_occ.copy())
         return assignments, contradiction
     else:
     #Split
         #Choose literal from the not yet assigned literals:
         random_lit = random.choice(unassigned_literals)
+        print("Clauses left: "+ str(clauses_count) + " unassigned_literals: " + str(len(unassigned_literals)))
         random_truth_value = random.choice([1, 0])
         
         #assign literal true or false            
@@ -176,12 +180,13 @@ def dp(clauses_dict, clauses_count, clauses_satisfied, literal_dict, assignments
         unassigned_literals.remove(random_lit)
         
         #Recursion
-        assignments1, contradiction1 = dp(clauses_dict, clauses_count, clauses_satisfied, literal_dict, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ)
+        assignments1, contradiction1 = dp(pickle.loads(pickle.dumps(clauses_dict)), clauses_count, clauses_satisfied.copy(), literal_dict.copy(), assignments.copy(), new_changed_literals, contradiction, unassigned_literals.copy(), lit_pos_occ.copy(), lit_neg_occ.copy())
         if contradiction1 == True:
+            #print(contradiction1)
             #give the above literal the other truth value
             assignments[random_lit] = int(not random_truth_value)
             #Recursion
-            assignments1, contradition1 = dp(clauses_dict, clauses_count, clauses_satisfied, literal_dict, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ)
+            assignments1, contradiction1 = dp(pickle.loads(pickle.dumps(clauses_dict)), clauses_count, clauses_satisfied.copy(), literal_dict.copy(), assignments.copy(), new_changed_literals, contradiction, unassigned_literals.copy(), lit_pos_occ.copy(), lit_neg_occ.copy())
         
         return assignments1, contradiction1
         
@@ -208,7 +213,7 @@ def simplify_clause(clause_id, clauses_dict, clauses_count, clauses_satisfied, a
         else:
             symbol = clause[0]
             if assignments[symbol] == 0:
-                clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, True, unassigned_literals, lit_pos_occ, lit_neg_occ
+                return clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, True, unassigned_literals, lit_pos_occ, lit_neg_occ
             
             elif assignments[symbol] == 2:
                 assignments[symbol] = 1
@@ -255,26 +260,28 @@ def simplify_clause(clause_id, clauses_dict, clauses_count, clauses_satisfied, a
                     symbol = literal[1:]
                     
                     if lit_neg_occ[symbol] > 0:
-                        lit_neg_occ[symbol] =- 1
+                        lit_neg_occ[symbol] -= 1
                 else:
                     symbol = literal
                     
                     if lit_pos_occ[symbol] > 0:
-                        lit_pos_occ[symbol] =- 1
+                        lit_pos_occ[symbol] -= 1
                 
                 if lit_neg_occ[symbol] == 0 and lit_pos_occ[symbol] > 0:
-                    assignments[symbol] = 1
-                    new_changed_literals.append(symbol)
-                    unassigned_literals.remove(symbol)
+                    if assignments[symbol] == 2:
+                        assignments[symbol] = 1
+                        new_changed_literals.append(symbol)
+                        unassigned_literals.remove(symbol)
                 elif lit_pos_occ[symbol] == 0 and lit_neg_occ[symbol] > 0:
-                    assignments[symbol] = 0
-                    new_changed_literals.append(symbol)
-                    unassigned_literals.remove(symbol)
+                    if assignments[symbol] == 2:
+                        assignments[symbol] = 0
+                        new_changed_literals.append(symbol)
+                        unassigned_literals.remove(symbol)
                     
         clauses_dict[clause_id] = clause
         
-        if clause_changed:
-            clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ = simplify_clause(clause_id, clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ)
+        if clause_changed and not clause_true:
+            clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ = simplify_clause(clause_id, pickle.loads(pickle.dumps(clauses_dict)), clauses_count, clauses_satisfied.copy(), assignments.copy(), new_changed_literals, contradiction, unassigned_literals.copy(), lit_pos_occ.copy(), lit_neg_occ.copy())
     
     return clauses_dict, clauses_count, clauses_satisfied, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ
                 
@@ -289,11 +296,34 @@ def simplify_clause(clause_id, clauses_dict, clauses_count, clauses_satisfied, a
     
     
 #######  Temporary testing function  #######
-def test_dp():
-    file = open("./input_file.cnf","r")
+def test_dp1(): 
+    t1 = time.time()
+    file = open("./input_file.cnf", "r")
     success, assignments = run_dp(file)
-    print(str(success))
-    print(str(assignments))
-
-test_dp()
+    t2 = time.time()
+    print("Runtime: " + str((t2 - t1) * 1000))
     
+    return success
+
+def test_dp2():
+    suc = 0
+    fail = 0
+    
+    for i in range(1000):
+        file = open("./SAT/uf20-0" + str(i+1) + ".cnf","r")
+        success, assignments = run_dp(file)
+        if success:
+            suc += 1
+        else:
+            fail += 1
+        
+        if (i+1) % 10 == 0:
+            print(str((i+1)/10) + "%")
+            
+    print("Success rate: " + str(suc/10) + "%")
+    print("Fail rate: " + str(fail/10) + "%")
+    
+    return
+
+test_dp1()
+#test_dp2()
