@@ -69,6 +69,8 @@ if __name__ == "__main__":
             n_clauses += 1
             rule_clauses += line
             for literal in line.split()[:-1]:
+                if "-" in literal:
+                    literal = literal[1:]
                 if literal not in variables:
                     variables.add(literal)
 
