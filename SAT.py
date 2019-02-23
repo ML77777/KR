@@ -31,13 +31,11 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
     clauses_dict = {}       #Can add extension to track which literals already are assigned or have a False value, or essentially which literal to check first
     literal_dict = {}
     assignments = {}
+    new_changes = {}
 
     id = 1
-    #assignments["counter"] =  0
-    assigned_counter = 0
-    satisfied_counter = 0
-    #assignments["order"] = []
-    order = []
+    #assigned_counter = 0
+    #satisfied_counter = 0
 
     #TODO Check for tautology Once
 
@@ -48,19 +46,19 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
             unit_clause = clause[0]
             if "-" == unit_clause[0]:
                 unit_clause = unit_clause[1:]
-                assignments[unit_clause] = 0 #If negative like -112 then take 112 and say it is false with 0
+                new_changes[unit_clause] = 0
+                #assignments[unit_clause] = 0 #If negative like -112 then take 112 and say it is false with 0
             else:
-                assignments[unit_clause] = 1 # If positive literal, assign it a 1 for true
-            #assignments["counter"] += 1
-            assigned_counter += 1
-            satisfied_counter += 1
-            #assignments["order"] = assignments["order"].append(clause)
+                new_changes[unit_clause] = 1
+                #assignments[unit_clause] = 1 # If positive literal, assign it a 1 for true
+            #assigned_counter += 1
+            #satisfied_counter += 1
             #order.append(unit_clause) Leave out if recursion
             continue
 
-        clauses_dict[id] = clause #A clause has an ID, except for pure literal clauses that already have a forced move
+        clauses_dict[id] = clause #a clause has an ID, except for pure literal clauses that already have a forced move
         for literal in clause:
-            #Both -111 and 111 can be in the literal dict. So no uniqueness, like in assignment dictionairy
+            #Both -111 and 111 can be in the literal dict. So no uniqueness, compared to assignment and new changes dictionairy, which only has 111 and then value 0 or 1
             if literal in literal_dict:
                 id_list = literal_dict[literal]
                 id_list.append(id)
@@ -69,11 +67,11 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
 
         id += 1
 
-    assignments["assign_count"] = assigned_counter
-    assignments["satis_counter"] = satisfied_counter
-    #assignments["order"] = order  Leaveo ut for recursion
-    print(assigned_counter)
-    print(satisfied_counter)
+    assignments["assign_counter"] = 0
+    assignments["satis_counter"] = 0
+    assignments["new_changes"] = new_changes
+    #print(assigned_counter)
+    #print(satisfied_counter)
     #print(order)
 
     return clauses_dict,literal_dict,assignments
@@ -82,30 +80,91 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
     #Run through dictionaries of literal/variables, to see if there is a pure literal and to check for tautology.
     #Or to check for all three, just go over all clauses once and check with the dictionaries. Might be more logical
 
-def check_clauses(literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses_dict,literal_dict,assign_dict):
+def check_status(clause_dict,assign_dict, ): #Check for set of clauses are satisfied  (or all values are assigned? maybe not)
+    amount_satisfied_clauses = assign_dict["satis_counter"]
+    solution = False
+
+    if len(clause_dict) == 0 and amount_satisfied_clauses == n_clauses:
+        print("A solution has been found")
+        solution = True
+
+    return solution
+
+
+def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses_dict,literal_dict,assign_dict):
+
+    #Change in clause dict if value is true, delete the clause id
+    #Change in clause dict if value is false, get the clause and remove the literal
+    #TODO: Check if it is last literal in clause, if false, then failure
+    #TODO: If second last and is false, then last one is forced move.
+
+    print("Check clauses; Literal, value, pos or neg case ",literal,literal_value,pos_or_neg)
 
     check_value = 1 if pos_or_neg == 1 else 0
     failure_found = False
 
-    for clause_id in pos_or_neg_claus_ids:
+    #adjusted_clause_ids = list(pos_or_neg_claus_ids) #Or use pos__rneg_claus_ids[:] may be faster, but weird syntax, or [i for i in pos__rneg_claus_ids] list comprehension
 
+
+    # If all test have passed, can assign the value and
+    # Delete the list of clauses the literal contained and
+    #assign_dict["assign_counter"] += 1
+    #if pos_or_neg == 0:
+    #    neg_literal = literal
+    #    pos_literal = literal[1:]
+    #else:
+    #    neg_literal = "-" + literal
+    #    pos_literal = literal
+    #assign_dict[pos_literal] = literal_value
+    #literal_dict.pop(pos_literal, None)
+    #literal_dict.pop(neg_literal, None)
+
+    for clause_id in pos_or_neg_claus_ids:
         # All clauses are immediately satisfied, so can be neglected
         if literal_value == check_value:  # pos_literal_value = 1 if value == 1 else 0
-            print("Clause satisfied:",clauses_dict[clause_id])
-            del clauses_dict[clause_id]  # use function clauses_dict.pop(clause_id)
+            #print("Clause satisfied:",clauses_dict[clause_id])
+            #All these clauses are satisfied, so need to update each variable to not point to this clause ID and remove clause ID from
+            clause = clauses_dict.get(clause_id,[])
+            for literal_to_update in clause:  #
+                if literal_to_update != literal and clause_id in literal_dict[literal_to_update]:
+                    literal_dict[literal_to_update].remove(clause_id)
+            clauses_dict.pop(clause_id,None)  # or use function clauses_dict.pop(clause_id) if want to return default value
             assign_dict["satis_counter"] += 1
         else:
-            # Check if other literals have assignment, if so, this is the last literal that can make it true, so if it is false, it is a contradiction/failure.
+            #Cases where the opposite version of literal is false
+            #Check for cases when amount_literals is 1 or 2
             literals_in_clause = clauses_dict.get(clause_id,[])
-            everthing_assigned = True
-            for a_literal_in_clause in literals_in_clause:  # Can add extension as said in line 30 avoid looping over everything
-                if not assign_dict.get(a_literal_in_clause, False):
-                    everthing_assigned = False
-                    break
+            print("Literals in clause ",literals_in_clause)
+            amount_literals = len(literals_in_clause)
 
-            if everthing_assigned:
+            #This is last literal
+            if amount_literals == 1:
                 failure_found = True
-                print("Clause contradiction:", literals_in_clause)
+                break
+
+            if amount_literals == 2: #Forced move as then there will be an unit clause
+                print("Literal to te removed: ", literal)
+                print("Amount literals is 2")
+                if literal in literals_in_clause:
+                    literals_in_clause.remove(literal)
+                clauses_dict[clause_id] = literals_in_clause  # Maybe redundant as the other is already a reference
+                #Go in to recursion as it is a forced move
+                #If want to avoid this if statement, dont store new changes inside it
+                copy_assign_dict = {key:value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+                new_literal = literals_in_clause[0]
+                if "-" == new_literal[0]:
+                    new_literal = new_literal[1:]
+                    copy_assign_dict["new_changes"] = {new_literal: 0}
+                else:
+                    copy_assign_dict["new_changes"] = {new_literal: 1}
+
+                clauses_dict, literal_dict, assign_dict,failure_found = process_assignments(clauses_dict, literal_dict, copy_assign_dict)
+            elif amount_literals > 2:
+                print("Literal to te removed: ", literal)
+                print("Amount literals > 2")
+                if literal in literals_in_clause:
+                    literals_in_clause.remove(literal)
+                clauses_dict[clause_id] = literals_in_clause  # Maybe redundant as the other is already a reference
 
     return clauses_dict, literal_dict, assign_dict, failure_found
 
@@ -113,67 +172,66 @@ def process_assignments(clauses_dict,literal_dict,assign_dict):
 
     failure_found = False
 
-    for literal,value in assign_dict.items():
-        if literal == "assign_counter" or "satis_counter":
-            continue
+    #for literal,value in assign_dict.items():
+    for literal, new_value in assign_dict["new_changes"].items():                #TODO: Check if list(assign_dict["new_changes"].items())may be faster
 
         neg_literal = "-" + literal
-        pos_clauses_ids = literal_dict.get(literal,[])   #Literal from assignments are literals without "-" sign and then value
+        pos_clauses_ids = literal_dict.get(literal,[])   #Literal from assignments and changes are literals without "-" sign and then value 0 or 1
         neg_clauses_ids = literal_dict.get(neg_literal,[]) #In case there it is pure literal, one of them lookups dont exist, thus return empty list
         print("Literal",literal)
-        clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(value,pos_clauses_ids,1,clauses_dict, literal_dict, assign_dict)
+        print("Value",new_value)
 
-        if not failure_found:
-            clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(value, neg_clauses_ids, 0, clauses_dict, literal_dict, assign_dict)
+        #Check for contradiction in primary assigment dictioanry and new assignment dictionairy for that lteral.
+        has_value = assign_dict.get(literal, None)
 
-        """
-        for pos_clause_id in pos_clauses_ids:
-            #All clauses are immediately satisfied, so can be neglected
-            if value == 1:          #pos_literal_value = 1 if value == 1 else 0
-                del clauses_dict[pos_clause_id] #use function clauses_dict.pop(clause_id)
-                assign_dict["satis_counter"] += 1
-            else:
-                #Check if other literals have assignment, if so, this is the last literal that can make it true, so if it is false, it is a contradiction/failure.
-                literals_in_clause = clauses_dict.get(pos_clause_id,[]]
-                everthing_assigned = True
-                for a_literal_in_clause in literals_in_clause:          #Can add extension as said in line 30 avoid looping over everything
-                    if not assign_dict.get(a_literal_in_clause,False):
-                        everthing_assigned = False
-                        break
+        if (has_value == 0 or has_value == 1) and has_value != new_value:
+            failure_found = True
+            break
+        elif not has_value:
+            #For clauses with positive version of literal
+            clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(literal,new_value,pos_clauses_ids,1,clauses_dict, literal_dict, assign_dict)
 
-                if everthing_assigned:
-                    return clauses_dict,literal_dict,assign_dict, True
+            if failure_found:
+                print("Clause contradiction:", literal,value)
+                break
 
+            # For clauses with negative version of literal
+            clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(neg_literal,new_value, neg_clauses_ids, 0, clauses_dict, literal_dict, assign_dict)
 
-        for neg_clause_id in neg_clauses_ids:
-            #All clauses are immediately satisfied
-            if value == 0:          #neg_literal_value = 1 if value == 0 else 0
-                del clauses_dict[neg_clause_id]
-                assign_dict["satis_counter"] += 1
-            else:
+            if failure_found:
+                print("Clause contradiction:", literal,value)
+                break
 
-                literals_in_clause = clauses_dict.get(neg_clause_id,[]]
-                everthing_assigned = True
-                for a_literal_in_clause in literals_in_clause:
-                    if not assign_dict.get(a_literal_in_clause,False):
-                        everthing_assigned = False
-                        break
-
-                if everthing_assigned:
-                    return clauses_dict,literal_dict,assign_dict, True}"""
-
+        #If all test have passed, can assign the value and
+        #Delete the list of clauses the literal contained and
+        assign_dict["assign_counter"] += 1  #Moved, as does not work for recursion here
+        assign_dict[literal] = new_value
+        literal_dict.pop(literal,None)
+        literal_dict.pop(neg_literal,None)
 
     return clauses_dict,literal_dict,assign_dict, failure_found
 
 def run_dp(dimacs_file):
-    n_variables, n_clauses, set_clauses = read_dimacs(dimacs_file)
-    clauses_dict, literal_dict, assign_dict = store_clauses(set_clauses)#,n_variables,n_clauses) #Can check for unit clauses to prevent double checking
+
+    n_variables, n_clauses, set_clauses = read_dimacs(dimacs_file) #Extract from dimalcs file
+    clauses_dict, literal_dict, assign_dict = store_clauses(set_clauses)#,n_variables,n_clauses) #Store clauses in dictionaries and also find unit clauses assignments
 
     print(len(clauses_dict), len(literal_dict), len(assign_dict))
 
-    new_clauses_dict, new_literal_dict, new_assign_dict,failure_found = process_assignments(clauses_dict,literal_dict,assign_dict)
+    new_clauses_dict, new_literal_dict, new_assign_dict,failure_found = process_assignments(clauses_dict,literal_dict,assign_dict) #Process the assignments that were found
+
+
+    # TODO Check for tautology Once (can also be done in store clauses
 
     print(len(new_clauses_dict),len(new_literal_dict),len(new_assign_dict),failure_found)
+    print("Amount Variables and assigned ",n_variables,new_assign_dict["assign_counter"])
+    print("Amount clauses and Satisfied clauses:", n_clauses, new_assign_dict["satis_counter"])
+    l = [int(k) for (k,v) in new_assign_dict.items() if v == 1]
+    l.sort()
+    print(l)
+    #new_assign_dict["new_changes"] = {"112":0}
+    #new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = process_assignments( new_clauses_dict, new_literal_dict, new_assign_dict)
+    #print(len(new_clauses_dict), len(new_literal_dict), len(new_assign_dict), failure_found)
     #Algorithm loop starts here
     no_answer = True
     #while no_answer:
