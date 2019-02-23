@@ -80,18 +80,17 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
     #Run through dictionaries of literal/variables, to see if there is a pure literal and to check for tautology.
     #Or to check for all three, just go over all clauses once and check with the dictionaries. Might be more logical
 
-def check_status(clause_dict,assign_dict, ): #Check for set of clauses are satisfied  (or all values are assigned? maybe not)
+def check_status(clause_dict,assign_dict, n_clauses): #Check for set of clauses are satisfied  (or all values are assigned? maybe not)
     amount_satisfied_clauses = assign_dict["satis_counter"]
     solution = False
 
     if len(clause_dict) == 0 and amount_satisfied_clauses == n_clauses:
-        print("A solution has been found")
-        solution = True
+        raise Exception()
 
-    return solution
+    return
 
 
-def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses_dict,literal_dict,assign_dict):
+def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses_dict,literal_dict,assign_dict,n_clauses):
 
     #Change in clause dict if value is true, delete the clause id
     #Change in clause dict if value is false, get the clause and remove the literal
@@ -158,7 +157,7 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                 else:
                     copy_assign_dict["new_changes"] = {new_literal: 1}
 
-                clauses_dict, literal_dict, assign_dict,failure_found = process_assignments(clauses_dict, literal_dict, copy_assign_dict)
+                clauses_dict, literal_dict, assign_dict,failure_found = process_assignments(clauses_dict, literal_dict, copy_assign_dict,n_clauses)
             elif amount_literals > 2:
                 print("Literal to te removed: ", literal)
                 print("Amount literals > 2")
@@ -168,7 +167,7 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
 
     return clauses_dict, literal_dict, assign_dict, failure_found
 
-def process_assignments(clauses_dict,literal_dict,assign_dict):
+def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
 
     failure_found = False
 
@@ -189,14 +188,14 @@ def process_assignments(clauses_dict,literal_dict,assign_dict):
             break
         elif not has_value:
             #For clauses with positive version of literal
-            clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(literal,new_value,pos_clauses_ids,1,clauses_dict, literal_dict, assign_dict)
+            clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(literal,new_value,pos_clauses_ids,1,clauses_dict, literal_dict, assign_dict,n_clauses)
 
             if failure_found:
                 print("Clause contradiction:", literal,value)
                 break
 
             # For clauses with negative version of literal
-            clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(neg_literal,new_value, neg_clauses_ids, 0, clauses_dict, literal_dict, assign_dict)
+            clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(neg_literal,new_value, neg_clauses_ids, 0, clauses_dict, literal_dict, assign_dict,n_clauses)
 
             if failure_found:
                 print("Clause contradiction:", literal,value)
@@ -213,15 +212,17 @@ def process_assignments(clauses_dict,literal_dict,assign_dict):
 
 def run_dp(dimacs_file):
 
-    n_variables, n_clauses, set_clauses = read_dimacs(dimacs_file) #Extract from dimalcs file
-    clauses_dict, literal_dict, assign_dict = store_clauses(set_clauses)#,n_variables,n_clauses) #Store clauses in dictionaries and also find unit clauses assignments
+    try:
+        n_variables, n_clauses, set_clauses = read_dimacs(dimacs_file) #Extract from dimalcs file
+        clauses_dict, literal_dict, assign_dict = store_clauses(set_clauses)#,n_variables,n_clauses) #Store clauses in dictionaries and also find unit clauses assignments
 
-    print(len(clauses_dict), len(literal_dict), len(assign_dict))
+        print(len(clauses_dict), len(literal_dict), len(assign_dict))
 
-    new_clauses_dict, new_literal_dict, new_assign_dict,failure_found = process_assignments(clauses_dict,literal_dict,assign_dict) #Process the assignments that were found
+        new_clauses_dict, new_literal_dict, new_assign_dict,failure_found = process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses) #Process the assignments that were found
+        # TODO Check for tautology Once (can also be done in store clauses
 
-
-    # TODO Check for tautology Once (can also be done in store clauses
+    except:
+        print("A solution has been found")
 
     print(len(new_clauses_dict),len(new_literal_dict),len(new_assign_dict),failure_found)
     print("Amount Variables and assigned ",n_variables,new_assign_dict["assign_counter"])
