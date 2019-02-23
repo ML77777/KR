@@ -2,6 +2,13 @@
 #For reading Dimacs input from sudoku clauses and sudoku puzzle
 import sys
 import time
+import random
+
+class SolutionFound(Exception):
+    pass
+
+class NoSolutionFound(Exception):
+    pass
 
 def read_dimacs(dimacs_file):
 
@@ -76,16 +83,77 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
 
     return clauses_dict,literal_dict,assignments
 
-#def try_simplify(clauses_dict,literal_dict,assignments): #Check for tautology, pure literal and unit clause
+def check_tautology(clauses_dict,literal_dict,assign_dict):
+
+    tautology_clauses = []
+    for id,clause in list(clauses_dict.items()):
+        literals_seen = set()
+        for literal in clause:
+            if literal[0] == "-":
+                opposite = literal[1:]
+            else:
+                opposite = "-" + literal
+
+            if opposite in literals_seen:
+                tautology_clauses.append(id)
+                break
+            literals_seen.add(literal)
+
+    #Process the tautology
+    for clause_id in tautology_clauses:
+        clause = clauses_dict.get(clause_id, [])
+        for literal_to_update in clause:  #
+            if clause_id in literal_dict[literal_to_update]:
+                literal_dict[literal_to_update].remove(clause_id)
+        clauses_dict.pop(clause_id, None)  # or use function clauses_dict.pop(clause_id) if want to return default value
+        assign_dict["satis_counter"] += 1
+
+    return clauses_dict, literal_dict, assign_dict
+
+def try_simplify(clauses_dict,literal_dict,assign_dict):
+
+    easy_case = False
+    #Check for pure literal and unit clause
     #Run through dictionaries of literal/variables, to see if there is a pure literal and to check for tautology.
-    #Or to check for all three, just go over all clauses once and check with the dictionaries. Might be more logical
+
+    #Check for pure literal
+    for literal in list(literal_dict.keys()):
+
+        if literal[0] == "-":
+            opposite = literal[1:]
+            abs_literal = opposite
+            value = 0
+        else:
+            opposite = "-" + literal
+            abs_literal = literal
+            value = 1
+
+        opposite_value = literal_dict.get(opposite,None)
+        if opposite_value == None:
+            assign_dict["new_changes"][abs_literal] = value
+            easy_case = True
+
+    for clause_id, clause in list(clauses_dict.items()):
+        if len(clause) == 1:
+            easy_case = True
+
+            unit_clause = clause[0]
+
+            if "-" == unit_clause[0]:
+                unit_clause = unit_clause[1:]
+                assign_dict["new_changes"][unit_clause] = 0
+                #assignments[unit_clause] = 0 #If negative like -112 then take 112 and say it is false with 0
+            else:
+                assign_dict["new_changes"][unit_clause] = 1
+
+    return clauses_dict,literal_dict,assign_dict, easy_case
+
 
 def check_status(clause_dict,assign_dict, n_clauses): #Check for set of clauses are satisfied  (or all values are assigned? maybe not)
     amount_satisfied_clauses = assign_dict["satis_counter"]
-    solution = False
 
     if len(clause_dict) == 0 and amount_satisfied_clauses == n_clauses:
-        raise Exception()
+        raise SolutionFound() #To jump to the exception of what to do when solution is found in run_dp
 
     return
 
@@ -208,46 +276,97 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
         literal_dict.pop(literal,None)
         literal_dict.pop(neg_literal,None)
 
+    if not failure_found: #Check if all clauses have been satisfied, might not be the best spot.
+        check_status(clauses_dict,assign_dict,n_clauses)
+
+    return clauses_dict,literal_dict,assign_dict, failure_found
+
+def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses):
+    failure_found = False
+
+    can_simplify = True
+
+    while can_simplify:
+        clauses_dict, literal_dict, assign_dict, can_simplify = try_simplify(clauses_dict,literal_dict,assign_dict)
+        if can_simplify:
+            new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = process_assignments(clauses_dict, literal_dict, assign_dict, n_clauses)
+
+    #Split
+    literal = random.choice(list(literal_dict.keys()))
+    assign_value = random.choice([0,1])
+
+    #Make copy of dictionaries
+    #Call dp_loop again? or use while loop again and then dp_loop
+
+
+
     return clauses_dict,literal_dict,assign_dict, failure_found
 
 def run_dp(dimacs_file):
 
+    solution = False
     try:
         n_variables, n_clauses, set_clauses = read_dimacs(dimacs_file) #Extract from dimalcs file
         clauses_dict, literal_dict, assign_dict = store_clauses(set_clauses)#,n_variables,n_clauses) #Store clauses in dictionaries and also find unit clauses assignments
 
         print(len(clauses_dict), len(literal_dict), len(assign_dict))
-
         new_clauses_dict, new_literal_dict, new_assign_dict,failure_found = process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses) #Process the assignments that were found
-        # TODO Check for tautology Once (can also be done in store clauses
 
-    except:
+        if failure_found:
+            raise NoSolutionFound()
+
+        print(len(new_clauses_dict), len(new_literal_dict), len(new_assign_dict), failure_found)
+        print("Amount Variables and assigned ", n_variables, new_assign_dict["assign_counter"])
+        print("Amount clauses and Satisfied clauses:", n_clauses, new_assign_dict["satis_counter"])
+
+        #Check for tautology
+        new_clauses_dict, new_literal_dict, new_assign_dict = check_tautology(new_clauses_dict,new_literal_dict,new_assign_dict)
+
+        print(len(new_clauses_dict), len(new_literal_dict), len(new_assign_dict), failure_found)
+        print("Amount Variables and assigned ", n_variables, new_assign_dict["assign_counter"])
+        print("Amount clauses and Satisfied clauses:", n_clauses, new_assign_dict["satis_counter"])
+
+        #Start searching after initialization of storing clauses, propagating unit clauses and check for tautology
+        new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(new_clauses_dict,new_literal_dict,new_assign_dict,n_clauses)
+
+
+    except SolutionFound:
         print("A solution has been found")
+        solution = True
+    except NoSolutionFound:
+        print("Early contradiction found, no solution")
+    finally:
+        print(len(new_clauses_dict),len(new_literal_dict),len(new_assign_dict),failure_found)
+        print("Amount Variables and assigned ",n_variables,new_assign_dict["assign_counter"])
+        print("Amount clauses and Satisfied clauses:", n_clauses, new_assign_dict["satis_counter"])
+        l = [int(k) for (k,v) in new_assign_dict.items() if v == 1]
+        l.sort()
+        print(l)
+        #new_assign_dict["new_changes"] = {"112":0}
+        #new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = process_assignments( new_clauses_dict, new_literal_dict, new_assign_dict)
+        #print(len(new_clauses_dict), len(new_literal_dict), len(new_assign_dict), failure_found)
 
-    print(len(new_clauses_dict),len(new_literal_dict),len(new_assign_dict),failure_found)
-    print("Amount Variables and assigned ",n_variables,new_assign_dict["assign_counter"])
-    print("Amount clauses and Satisfied clauses:", n_clauses, new_assign_dict["satis_counter"])
-    l = [int(k) for (k,v) in new_assign_dict.items() if v == 1]
-    l.sort()
-    print(l)
-    #new_assign_dict["new_changes"] = {"112":0}
-    #new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = process_assignments( new_clauses_dict, new_literal_dict, new_assign_dict)
-    #print(len(new_clauses_dict), len(new_literal_dict), len(new_assign_dict), failure_found)
-    #Algorithm loop starts here
-    no_answer = True
-    #while no_answer:
-        #try_simplify(clauses_dict,literal_dict,assignments)
-    return
+
+    return new_assign_dict,solution
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         t1 = time.time()
 
         file = open("./input_file.cnf","r") #For testing
-        run_dp(file)#For testing
+        assignments, solution = run_dp(file)#For testing
         #for i in range(30000000): 30 million actions to take around 1 second?
         #    i = 0
-
+        if solution:
+            l = [int(k) for (k, v) in assignments.items() if v == 1]
+            l.sort()
+            print(l)
+            #file = open("./output_file.cnf", "w")
+            #for assign in l:
+            #    file.write(str(assign) + " " + "\n"
+        else:
+            print("There was no solution")
+            #open("./output_file.cnf", "w")
         t2 = time.time()
         print("Runtime: " + str((t2 - t1)))#* 1000))
 
