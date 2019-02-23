@@ -147,7 +147,7 @@ def dp(clauses_dict, clauses_count, literal_dict, assignments, changed_literals,
     elif len(new_changed_literals) > 0:
         
         ###Check out
-        assignments, contradiction = dp(deepcopy(clauses_dict), clauses_count, literal_dict.copy(), assignments.copy(), new_changed_literals, contradiction, unassigned_literals.copy(), lit_pos_occ.copy(), lit_neg_occ.copy())
+        assignments, contradiction = dp(clauses_dict, clauses_count, literal_dict, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ)
         return assignments, contradiction
     else:
     #Split
@@ -174,7 +174,7 @@ def dp(clauses_dict, clauses_count, literal_dict, assignments, changed_literals,
             #Recursion
             
             #CHECK OUT
-            assignments1, contradiction1 = dp(deepcopy(clauses_dict), clauses_count, literal_dict.copy(), assignments.copy(), new_changed_literals, contradiction, unassigned_literals.copy(), lit_pos_occ.copy(), lit_neg_occ.copy())
+            assignments1, contradiction1 = dp(clauses_dict, clauses_count, literal_dict, assignments, new_changed_literals, contradiction, unassigned_literals, lit_pos_occ, lit_neg_occ)
         
         return assignments1, contradiction1
         
