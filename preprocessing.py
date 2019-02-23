@@ -69,6 +69,8 @@ if __name__ == "__main__":
             n_clauses += 1
             rule_clauses += line
             for literal in line.split()[:-1]:
+                if "-" in literal:
+                    literal = literal[1:]
                 if literal not in variables:
                     variables.add(literal)
 
@@ -82,7 +84,7 @@ if __name__ == "__main__":
     dimacs_puzzle,n2_clauses = encode_dimacs(sudoku_puzzle)
     total_clauses = n_clauses + n2_clauses
 
-    input_file = open("./input_file.txt","w")
+    input_file = open("./input_file.cnf","w")
     input_file.write("p cnf " + str(len(variables)) + " " + str(total_clauses) + "\n")
     input_file.write(rule_clauses)
     input_file.write(dimacs_puzzle[0])
