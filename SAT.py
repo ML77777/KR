@@ -94,25 +94,8 @@ def check_status(clause_dict,assign_dict, n_clauses): #Check for set of clauses 
     #input("Hallo")
 
     if len(clause_dict) == 0: #and amount_satisfied_clauses == n_clauses:
-        print("-" * 175)
         global final_assignment_dictionary
         final_assignment_dictionary = assign_dict
-        print("Amount of assignments :",len(assign_dict))
-        l = [int(k) for (k,v) in assign_dict.items() if v == 1]
-        print("length of positive ", len(l))
-        l.sort()
-        print(l)
-
-        for r in range(1,10):
-            for c in range(1,10):
-                pos = str(r) + str(c)
-                list = []
-                for value in range(1,10):
-                    check = pos + str(value)
-                    check_assignment = assign_dict.get(check,-2)
-                    list.append((check,check_assignment))
-                print(list)
-
         raise SolutionFound() #To jump to the exception of what to do when solution is found in run_dp
 
     return
@@ -546,6 +529,30 @@ def run_dp(dimacs_file):
 #    for k, v in a.items():
 #        b[k] = v.copy()
  #   return b
+def display_values(assign_dict):
+    print("-" * 175)
+    print("Amount of assignments :", len(assign_dict))
+    l = [int(k) for (k, v) in assign_dict.items() if v == 1]
+    print("length of positive ", len(l))
+    l.sort()
+    print(l)
+
+    sudoku = []
+    for r in range(1, 10):
+        for c in range(1, 10):
+            pos = str(r) + str(c)
+            list = []
+            for value in range(1, 10):
+                check = pos + str(value)
+                check_assignment = assign_dict.get(check, -2)
+                list.append((check, check_assignment))
+                if (check_assignment == 1):
+                    sudoku.append(value)
+            print(list)
+    print("\n")
+    for value in range(0, len(sudoku), 9):
+        print(sudoku[value:value + 9])
+    print("\n")
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
@@ -559,6 +566,7 @@ if __name__ == "__main__":
             l = [int(k) for (k, v) in list(final_assignment_dictionary.items()) if v == 1]
             l.sort()
             print(l)
+
             #file = open("./output_file.cnf", "w")
             #for assign in l:
             #    file.write(str(assign) + " " + "\n"
@@ -566,7 +574,11 @@ if __name__ == "__main__":
             print("There was no solution")
             #open("./output_file.cnf", "w")
         t2 = time.time()
-        print("Runtime: " + str((t2 - t1)))#* 1000))
+        #print("Runtime: " + str((t2 - t1)))#* 1000))
+
+        if solution:
+            display_values(final_assignment_dictionary)
+        print("Runtime not including display matrix: " + str((t2 - t1)))  # * 1000))
 
         print("Error: No arguments were given")
         sys.exit(1)
