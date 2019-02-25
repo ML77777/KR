@@ -3,6 +3,7 @@
 import sys
 import time
 import random
+import copy
 
 class SolutionFound(Exception):
     pass
@@ -126,7 +127,7 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
 
     check_value = 1 if pos_or_neg == 1 else 0
     failure_found = False
-    #copied_assign_dict = False
+    copied_assign_dict = False
 
     #adjusted_clause_ids = list(pos_or_neg_claus_ids) #Or use pos__rneg_claus_ids[:] may be faster, but weird syntax, or [i for i in pos__rneg_claus_ids] list comprehension
 
@@ -176,13 +177,13 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                     copy_assign_dict = {key:value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
                     copied_assign_dict = True
                 
-                #new_literal = literals_in_clause[0]
+                new_literal = literals_in_clause[0]
                 if "-" == new_literal[0]:
                     new_literal = new_literal[1:]
-                    copy_assign_dict["new_changes"] = {new_literal: 0}
+                    copy_assign_dict["new_changes"][new_literal] = {new_literal: 0}
                 else:
-                    copy_assign_dict["new_changes"] = {new_literal: 1}
-                #"""
+                    copy_assign_dict["new_changes"][new_literal] = {new_literal: 1}
+                """
 
                 """ Manier 3, extra check if literal has not been assigned yet, if the check in process assignments is not enough
                 copy_assign_dict = {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
@@ -211,9 +212,12 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                 """
 
                 #"""#Manier 1, need to make copy, as it is iterated in process assignments
-                copy_assign_dict = {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
-                copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
-                copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
+                #copy_assign_dict = {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+                #copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
+                #copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
+                copy_clauses_dict = copy.deepcopy(clauses_dict)  # {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
+                copy_literal_dict = copy.deepcopy(literal_dict)  # {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
+                copy_assign_dict = copy.deepcopy(assign_dict)  # {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
                 #copy_clauses_dict = clauses_dict
                 #copy_literal_dict = literal_dict
 
@@ -299,8 +303,8 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
             literal_dict.pop(neg_literal, None)
         #"""
 
-    if not failure_found: #Check if all clauses have been satisfied, might not be the best spot.
-        check_status(clauses_dict,assign_dict,n_clauses)
+    #if not failure_found: #Check if all clauses have been satisfied, might not be the best spot.
+    #    check_status(clauses_dict,assign_dict,n_clauses)
 
     #Reset
     assign_dict["new_changes"].clear()
@@ -409,15 +413,16 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
         if failure_found:
             break
 
-
+    if not failure_found:  # Check if all clauses have been satisfied, might not be the best spot.
+        check_status(clauses_dict, assign_dict, n_clauses)
     #random.shuffle(list_literals)
     #for literal in list_literals:
 
     if not failure_found and len(unassigned_literals) > 0:
         # Make copy of dictionaries
-        copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
-        copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
-        copy_assign_dict = {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+        copy_clauses_dict = copy.deepcopy(clauses_dict)#{clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
+        copy_literal_dict = copy.deepcopy(literal_dict)#{literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
+        copy_assign_dict = copy.deepcopy(assign_dict)#{key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
 
         #for literal in list_literals:
         #Split
