@@ -213,10 +213,13 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                 copy_assign_dict = {key: value_assign for (key, value_assign) in list(assign_dict.items())}  # if key != "new_changes"}
                 """
 
+                copy_assign_dict = assign_dict
+                copy_literal_dict = literal_dict
+                copy_clauses_dict = clauses_dict
                 #"""#Manier 1, need to make copy, as it is iterated in process assignments
-                copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if key != "new_changes"}
-                copy_clauses_dict = {clause_id: clause for (clause_id, clause) in clauses_dict.items()}
-                copy_literal_dict = {literal: list_ids for (literal, list_ids) in literal_dict.items()}
+                #copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if key != "new_changes"}
+                #copy_clauses_dict = {clause_id: clause for (clause_id, clause) in clauses_dict.items()}
+                #copy_literal_dict = {literal: list_ids for (literal, list_ids) in literal_dict.items()}
                 #copy_clauses_dict = copy.deepcopy(clauses_dict)  # {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
                 #copy_literal_dict = copy.deepcopy(literal_dict)  # {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
                 #copy_assign_dict = copy.deepcopy(assign_dict)  # {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
