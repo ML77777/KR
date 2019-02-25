@@ -34,7 +34,9 @@ def read_dimacs(dimacs_file):
 
         #print(list(map(int,clause)))   #In case to convert every element to actual integer
 
-    print(n_variables,n_clauses,clauses)
+    #print(n_variables,n_clauses,clauses)
+    print(n_variables,len(clauses))
+
     return n_variables,n_clauses,clauses
 
 
@@ -123,7 +125,7 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
     #Check if it is last literal in clause, if false, then failure
     #If second last and is false, then last one is forced move, have 2 ways, can propagate immediately, or wait for all changes found
 
-    print("Check clauses; Literal, value, pos or neg case ",literal,literal_value,pos_or_neg)
+    #print("Check clauses; Literal, value, pos or neg case ",literal,literal_value,pos_or_neg)
 
     check_value = 1 if pos_or_neg == 1 else 0
     failure_found = False
@@ -134,12 +136,12 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
     for clause_id in pos_or_neg_claus_ids:
         # All clauses are immediately satisfied, so can be neglected
         if literal_value == check_value:  # pos_literal_value = 1 if value == 1 else 0
-            if clause_id in clauses_dict:
-                print("Clause satisfied:",clauses_dict[clause_id])
+            #if clause_id in clauses_dict:
+                #print("Clause satisfied:",clauses_dict[clause_id])
 
-                if clause_id in test:
-                    print("-" * 100 + str(clause_id))
-                    #input("One of the lange clause")
+                #if clause_id in test:
+                #    print("-" * 100 + str(clause_id))
+                #    #input("One of the lange clause")
 
             #All these clauses are satisfied, so need to update each variable to not point to this clause ID and remove clause ID from
             clause = clauses_dict.get(clause_id,[])
@@ -152,7 +154,7 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
             #Cases where the opposite version of literal is false
             #Check for cases when amount_literals is 1 or 2
             literals_in_clause = clauses_dict.get(clause_id,[])
-            print("Literals in clause ",literals_in_clause)
+            #print("Literals in clause ",literals_in_clause)
             amount_literals = len(literals_in_clause)
 
             #This is last literal
@@ -163,8 +165,8 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
             if amount_literals == 2: #Forced move as then there will be an unit clause, but also need to check contradicion
 
 
-                print("Literal to te removed: ", literal)
-                print("Amount literals is 2")
+                #print("Literal to te removed: ", literal)
+                #print("Amount literals is 2")
                 if literal in literals_in_clause:
                     literals_in_clause.remove(literal)
                 clauses_dict[clause_id] = literals_in_clause  # Maybe redundant as the other is already a reference
@@ -212,13 +214,13 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                 """
 
                 #"""#Manier 1, need to make copy, as it is iterated in process assignments
-                #copy_assign_dict = {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
-                #copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
-                #copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
-                copy_clauses_dict = copy.deepcopy(clauses_dict)  # {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
-                copy_literal_dict = copy.deepcopy(literal_dict)  # {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
-                copy_assign_dict = copy.deepcopy(assign_dict)  # {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
-                #copy_clauses_dict = clauses_dict
+                copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if key != "new_changes"}
+                copy_clauses_dict = {clause_id: clause for (clause_id, clause) in clauses_dict.items()}
+                copy_literal_dict = {literal: list_ids for (literal, list_ids) in literal_dict.items()}
+                #copy_clauses_dict = copy.deepcopy(clauses_dict)  # {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
+                #copy_literal_dict = copy.deepcopy(literal_dict)  # {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
+                #copy_assign_dict = copy.deepcopy(assign_dict)  # {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+                #copy_clauses_dict = {k:v.copy() for k, v in a.items()}
                 #copy_literal_dict = literal_dict
 
                 new_literal = literals_in_clause[0]
@@ -234,8 +236,8 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                 #"""
 
             elif amount_literals > 2:
-                print("Literal to te removed: ", literal)
-                print("Amount literals > 2")
+                #print("Literal to te removed: ", literal)
+                #print("Amount literals > 2")
                 if literal in literals_in_clause:
                     literals_in_clause.remove(literal)
                 clauses_dict[clause_id] = literals_in_clause  # Maybe redundant as the other is already a reference
@@ -249,8 +251,8 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
 def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
 
     failure_found = False
-    print("Changes to process:")
-    print(assign_dict["new_changes"].items())
+    #print("Changes to process:")
+    #print(assign_dict["new_changes"].items())
     #wait = input("PROCESSING THESE CHANGES, PRESS ENTER TO CONTINUE.")
 
     #for literal,value in assign_dict.items():
@@ -259,8 +261,8 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
         neg_literal = "-" + literal
         pos_clauses_ids = literal_dict.get(literal,[])   #Literal from assignments and changes are literals without "-" sign and then value 0 or 1
         neg_clauses_ids = literal_dict.get(neg_literal,[]) #In case there it is pure literal, one of them lookups dont exist, thus return empty list
-        print("Literal",literal)
-        print("Value",new_value)
+        #print("Literal",literal)
+        #print("Value",new_value)
 
         #Check for contradiction in primary assigment dictioanry and new assignment dictionairy for that literal.
         has_value = assign_dict.get(literal, None)
@@ -270,19 +272,19 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
             break
         elif not has_value:
 
-            """#Manier 2
+            #"""#Manier 2
             # Delete the list of clauses the literal contained and
             assign_dict["assign_counter"] += 1
             assign_dict[literal] = new_value
             literal_dict.pop(literal, None)
             literal_dict.pop(neg_literal, None)
-            """
+            #"""
 
             #For clauses with positive version of literal
             clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(literal,new_value,pos_clauses_ids,1,clauses_dict, literal_dict, assign_dict,n_clauses)
 
             if failure_found:
-                print("Clause contradiction:", literal,new_value)
+                #print("Clause contradiction:", literal,new_value)
                 #print("punt 1 in process")
                 break
 
@@ -290,10 +292,10 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
             clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(neg_literal,new_value, neg_clauses_ids, 0, clauses_dict, literal_dict, assign_dict,n_clauses)
 
             if failure_found:
-                print("Clause contradiction:", literal,new_value)
+                #print("Clause contradiction:", literal,new_value)
                 #print("punt 2 in process")
                 break
-        #"""
+        """
         #If all test have passed, can assign the value and
         #Delete the list of clauses the literal contained and
         if assign_dict.get(literal,None) == None:
@@ -395,10 +397,10 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
     can_simplify = True
 
 
-    print("-" * 75 + "Split level " + str(split_level) + ": " + str(assign_dict["new_changes"]) + "-" * 75 )
+    #print("-" * 75 + "Split level " + str(split_level) + ": " + str(assign_dict["new_changes"]) + "-" * 75 )
     #input()
     if len(assign_dict["new_changes"]) > 0:
-        print("Calling process assignmetns from dp loop call 1")
+        #print("Calling process assignmetns from dp loop call 1")
         clauses_dict, literal_dict, assign_dict, failure_found = process_assignments(clauses_dict, literal_dict, assign_dict, n_clauses)
 
     if failure_found:
@@ -408,7 +410,7 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
         clauses_dict, literal_dict, assign_dict, can_simplify = try_simplify(clauses_dict,literal_dict,assign_dict)
         #wait = input("Can simplify, PRESS ENTER TO CONTINUE.")
         if can_simplify:
-            print("Calling process assignmetns from dp loop call 2")
+            #print("Calling process assignmetns from dp loop call 2")
             clauses_dict, literal_dict, assign_dict, failure_found = process_assignments(clauses_dict, literal_dict, assign_dict, n_clauses)
         if failure_found:
             break
@@ -420,14 +422,27 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
 
     if not failure_found and len(unassigned_literals) > 0:
         # Make copy of dictionaries
-        copy_clauses_dict = copy.deepcopy(clauses_dict)#{clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
-        copy_literal_dict = copy.deepcopy(literal_dict)#{literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
-        copy_assign_dict = copy.deepcopy(assign_dict)#{key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+        #copy_clauses_dict = copy.deepcopy(clauses_dict)#{clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
+        #copy_literal_dict = copy.deepcopy(literal_dict)#{literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
+        #copy_assign_dict = copy.deepcopy(assign_dict)#{key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+        copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if key != "new_changes"}
+        copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
+        copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
 
         #for literal in list_literals:
         #Split
         literal = random.choice(unassigned_literals)
         unassigned_literals.remove(literal)
+
+        while literal in assign_dict:
+            if len(unassigned_literals) == 0:
+                return clauses_dict, literal_dict, assign_dict, failure_found
+            literal = random.choice(unassigned_literals)
+            unassigned_literals.remove(literal)
+
+        #copy_unassigned_literals = unassigned_literals.copy()
+        copy_unassigned_literals = []
+        copy_unassigned_literals.extend(unassigned_literals)
         values = [0,1]
         assign_value_index = random.choice([0,1])
         value_picked = values.pop(assign_value_index)
@@ -439,13 +454,22 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
 
         copy_assign_dict["new_changes"] = {literal:value_picked}
 
-        new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy_clauses_dict, copy_literal_dict,copy_assign_dict, n_clauses,split_level+1,unassigned_literals)
+        new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy_clauses_dict, copy_literal_dict,copy_assign_dict, n_clauses,split_level+1,copy_unassigned_literals)
         if failure_found:
             #print("Literal in split", literal)
             #print("Picking Other value in split", other_value)
             #wait = input("PRESS ENTER TO CONTINUE.")
-            copy_assign_dict["new_changes"] = {literal: other_value}
-            new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy_clauses_dict, copy_literal_dict, copy_assign_dict, n_clauses,split_level+1,unassigned_literals)
+            #copy2_clauses_dict = copy.deepcopy(clauses_dict)  # {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
+            #copy2_literal_dict = copy.deepcopy(literal_dict)  # {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
+            #copy2_assign_dict = copy.deepcopy(assign_dict)  # {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+            copy2_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if  key != "new_changes"}
+            copy2_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
+            copy2_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
+
+            copy2_assign_dict["new_changes"] = {literal: other_value}
+            new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy2_clauses_dict, copy2_literal_dict, copy2_assign_dict, n_clauses,split_level+1,copy_unassigned_literals)
+
+        clauses_dict, literal_dict, assign_dict = new_clauses_dict, new_literal_dict, new_assign_dict
     else:
         failure_found = True
 
@@ -513,6 +537,12 @@ def run_dp(dimacs_file):
         #print(len(new_clauses_dict), len(new_literal_dict), len(new_assign_dict), failure_found)
 
     return new_assign_dict,solution
+
+#def deepcopy(a):
+#    b = {}
+#    for k, v in a.items():
+#        b[k] = v.copy()
+ #   return b
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
