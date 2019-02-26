@@ -411,6 +411,8 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
         #copy_clauses_dict = copy.deepcopy(clauses_dict)#{clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
         #copy_literal_dict = copy.deepcopy(literal_dict)#{literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
         #copy_assign_dict = copy.deepcopy(assign_dict)#{key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+        #assign_dict.pop("new_changes", None)
+        #copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items()}
         copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if key != "new_changes"}
         copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
         copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
@@ -448,10 +450,14 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
             #copy2_clauses_dict = copy.deepcopy(clauses_dict)  # {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
             #copy2_literal_dict = copy.deepcopy(literal_dict)  # {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
             #copy2_assign_dict = copy.deepcopy(assign_dict)  # {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
+            #assign_dict.pop("new_changes",None)
+            #assign_dict["new_changes"] = {}
+            #copy2_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items()}
             copy2_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if  key != "new_changes"}
             copy2_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
             copy2_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
 
+            #copy2_assign_dict["new_changes"][literal] = other_value
             copy2_assign_dict["new_changes"] = {literal: other_value}
             new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy2_clauses_dict, copy2_literal_dict, copy2_assign_dict, n_clauses,split_level+1,copy_unassigned_literals)
 
