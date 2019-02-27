@@ -1,9 +1,7 @@
 #File format version
 #For reading Dimacs input from sudoku clauses and sudoku puzzle
-import sys
-import time
-import random
-import copy
+import sys, time,random, copy
+from operator import itemgetter
 
 class SolutionFound(Exception):
     pass
@@ -12,7 +10,8 @@ class NoSolutionFound(Exception):
     pass
 
 final_assignment_dictionary = {}
-test = []
+amount_of_backtracks = 0
+amount_of_splits = 0
 
 def read_dimacs(dimacs_file):
 
@@ -125,6 +124,13 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                 #if clause_id in test:
                 #    print("-" * 100 + str(clause_id))
                 #    #input("One of the lange clause")
+            #if pos_or_neg == 1:
+            #    neg_literal = "-" + literal
+            #else:
+            #    neg_literal = literal
+            #    literal = neg_literal[1:]
+            #literal_dict.pop(literal, None)
+            #literal_dict.pop(neg_literal, None)
 
             #All these clauses are satisfied, so need to update each variable to not point to this clause ID and remove clause ID from
             clause = clauses_dict.get(clause_id,[])
@@ -200,9 +206,9 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                 copy_literal_dict = literal_dict
                 copy_clauses_dict = clauses_dict
                 #"""#Manier 1, need to make copy, as it is iterated in process assignments
-                #copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if key != "new_changes"}
-                #copy_clauses_dict = {clause_id: clause for (clause_id, clause) in clauses_dict.items()}
-                #copy_literal_dict = {literal: list_ids for (literal, list_ids) in literal_dict.items()}
+                #copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items()}
+                #copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
+                #copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
                 #copy_clauses_dict = copy.deepcopy(clauses_dict)  # {clause_id: clause.copy() for (clause_id, clause) in list(clauses_dict.items())}
                 #copy_literal_dict = copy.deepcopy(literal_dict)  # {literal: list_ids.copy() for (literal, list_ids) in list(literal_dict.items())}
                 #copy_assign_dict = copy.deepcopy(assign_dict)  # {key: value_assign for (key, value_assign) in list(assign_dict.items()) if key != "new_changes"}
@@ -259,13 +265,16 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
         elif not has_value:
 
             #"""#Manier 2
-            # Delete the list of clauses the literal contained and
+            #Delete the list of clauses the literal contained and
             assign_dict["assign_counter"] += 1
             assign_dict[literal] = new_value
             literal_dict.pop(literal, None)
             literal_dict.pop(neg_literal, None)
             #"""
-
+            #copy_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items()}
+            #copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
+            #copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
+            #copy_clauses_dict, copy_literal_dict, copy_assign_dict, failure_found = check_clauses(literal, new_value, pos_clauses_ids,1, copy_clauses_dict, copy_literal_dict,copy_assign_dict, n_clauses)
             #For clauses with positive version of literal
             clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(literal,new_value,pos_clauses_ids,1,clauses_dict, literal_dict, assign_dict,n_clauses)
 
@@ -281,15 +290,6 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses):
                 #print("Clause contradiction:", literal,new_value)
                 #print("punt 2 in process")
                 break
-        """
-        #If all test have passed, can assign the value and
-        #Delete the list of clauses the literal contained and
-        if assign_dict.get(literal,None) == None:
-            assign_dict["assign_counter"] += 1  # Moved, as does not work for recursion here
-            assign_dict[literal] = new_value
-            literal_dict.pop(literal, None)
-            literal_dict.pop(neg_literal, None)
-        #"""
 
     #if not failure_found: #Check if all clauses have been satisfied, might not be the best spot.
     #    check_status(clauses_dict,assign_dict,n_clauses)
@@ -336,12 +336,10 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
     #assigned_counter = 0
     satisfied_counter = 0
 
-    #TODO Check for tautology Once
-
     for clause in initial_clauses:
 
-        if len(clause) > 7:
-            test.append(id)
+        #if len(clause) > 7:
+        #    test.append(id)
 
         #Found unit clause
         if len(clause) == 1:
@@ -378,7 +376,7 @@ def store_clauses(initial_clauses):#,n_variables,n_clauses):
 
     return clauses_dict,literal_dict,assignments
 
-def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassigned_literals):
+def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassigned_literals,heuristic):
     failure_found = False
     can_simplify = True
 
@@ -417,33 +415,66 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
         copy_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
         copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
 
-        #for literal in list_literals:
+        if heuristic == 1:
         #Split
-        literal = random.choice(unassigned_literals)
-        unassigned_literals.remove(literal)
-
-        while literal in assign_dict:
-            if len(unassigned_literals) == 0:
-                return clauses_dict, literal_dict, assign_dict, failure_found
             literal = random.choice(unassigned_literals)
             unassigned_literals.remove(literal)
 
+            while literal in assign_dict:
+                if len(unassigned_literals) == 0:
+                    return clauses_dict, literal_dict, assign_dict, failure_found
+                literal = random.choice(unassigned_literals)
+                unassigned_literals.remove(literal)
+            values = [0, 1]
+            assign_value_index = random.choice([0, 1])
+            value_picked = values.pop(assign_value_index)
+            other_value = values[0]
+        elif heuristic == 2:
+            if len(unassigned_literals) == 0:
+                return clauses_dict, literal_dict, assign_dict, failure_found
+
+            score_list = []
+            for unassigned_literal in unassigned_literals:
+                if unassigned_literal[0] == "-":
+                    pos_literal = unassigned_literal[1:]
+                else:
+                    pos_literal = unassigned_literal
+
+                if pos_literal in assign_dict:
+                    unassigned_literals.remove(unassigned_literal)
+                    continue
+                score = 0
+                clause_ids = literal_dict[unassigned_literal]
+                for clause_id in clause_ids:
+                    clause = clauses_dict[clause_id]
+                    score += 2**-len(clause)
+                score_list.append((unassigned_literal,score))
+
+            if len(score_list) > 0:
+                score_list = sorted(score_list, key=itemgetter(1))
+                literal = score_list[0][0]
+                unassigned_literals.remove(literal)
+
+                if literal[0] == "-":
+                    literal = literal[1:]
+                    value_picked = 0
+                    other_value = 1
+                else:
+                    value_picked = 1
+                    other_value = 0
+
+        global amount_of_splits
+        amount_of_splits += 1
         #copy_unassigned_literals = unassigned_literals.copy()
         copy_unassigned_literals = []
         copy_unassigned_literals.extend(unassigned_literals)
-        values = [0,1]
-        assign_value_index = random.choice([0,1])
-        value_picked = values.pop(assign_value_index)
-        other_value = values[0]
-        #print("-" * 175)
-        #print("Literal in split",literal)
-        #print("Value picked in split", value_picked)
-        #wait = input("PRESS ENTER TO CONTINUE.")
 
         copy_assign_dict["new_changes"] = {literal:value_picked}
 
-        new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy_clauses_dict, copy_literal_dict,copy_assign_dict, n_clauses,split_level+1,copy_unassigned_literals)
+        new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy_clauses_dict, copy_literal_dict,copy_assign_dict, n_clauses,split_level+1,copy_unassigned_literals,heuristic)
         if failure_found:
+            global amount_of_backtracks
+            amount_of_backtracks += 1
             #print("Literal in split", literal)
             #print("Picking Other value in split", other_value)
             #wait = input("PRESS ENTER TO CONTINUE.")
@@ -459,7 +490,7 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
 
             #copy2_assign_dict["new_changes"][literal] = other_value
             copy2_assign_dict["new_changes"] = {literal: other_value}
-            new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy2_clauses_dict, copy2_literal_dict, copy2_assign_dict, n_clauses,split_level+1,copy_unassigned_literals)
+            new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy2_clauses_dict, copy2_literal_dict, copy2_assign_dict, n_clauses,split_level+1,copy_unassigned_literals,heuristic)
 
         clauses_dict, literal_dict, assign_dict = new_clauses_dict, new_literal_dict, new_assign_dict
     else:
@@ -468,7 +499,7 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
 
     return clauses_dict,literal_dict,assign_dict, failure_found
 
-def run_dp(dimacs_file):
+def run_dp(dimacs_file,heuristic):
 
     solution = False
     try:
@@ -476,7 +507,7 @@ def run_dp(dimacs_file):
         clauses_dict, literal_dict, assign_dict = store_clauses(set_clauses)#,n_variables,n_clauses) #Store clauses in dictionaries and also find unit clauses assignments
 
         print("-" * 175)
-        print(test)
+        #print(test)
         print(len(clauses_dict), len(literal_dict), len(assign_dict))
         new_clauses_dict, new_literal_dict, new_assign_dict,failure_found = process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses) #Process the assignments that were found
 
@@ -498,14 +529,25 @@ def run_dp(dimacs_file):
         print("Amount clauses and Satisfied clauses:", n_clauses, new_assign_dict["satis_counter"])
 
         unassigned_literals = []
-        assigned_list = list(assign_dict.keys())
+        #assigned_list = list(assign_dict.keys())
         for literal in list(literal_dict.keys()):
-            if "-" != literal[0] and literal not in assigned_list:
-                unassigned_literals.append(literal)
+            if heuristic == 1 and "-" != literal[0] and literal not in assign_dict:
+                 unassigned_literals.append(literal)
+            elif heuristic == 2:
+                if literal[0] == "-":
+                    pos_literal = literal[1:]
+                    neg_literal = literal
+                else:
+                    pos_literal = literal
+                    neg_literal = "-" + pos_literal
+
+                if pos_literal not in assign_dict:
+                    unassigned_literals.append(pos_literal)
+                    unassigned_literals.append(neg_literal)
         random.shuffle(unassigned_literals)
 
         #Start searching after initialization of storing clauses, propagating unit clauses and check for tautology
-        new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(new_clauses_dict,new_literal_dict,new_assign_dict,n_clauses,1,unassigned_literals)
+        new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(new_clauses_dict,new_literal_dict,new_assign_dict,n_clauses,1,unassigned_literals,heuristic)
         print("EVERYTHING FAILLED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     except SolutionFound:
@@ -515,8 +557,9 @@ def run_dp(dimacs_file):
     except NoSolutionFound:
         print("-" * 175)
         print("Early contradiction found, no solution")
-    finally:
-        l = 1
+    #finally:
+        #print("Amount of splits: ", amount_of_splits)
+        #print("Amount of backtracks: ",amount_of_backtracks)
         #print("-" * 175)
         #print(len(new_clauses_dict),len(new_literal_dict),len(new_assign_dict) - 3,failure_found)
         #print("Amount Variables and assigned ",n_variables,new_assign_dict["assign_counter"])
@@ -563,9 +606,9 @@ def display_values(assign_dict):
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         t1 = time.time()
-
+        heuristic = 2
         file = open("./input_file.cnf","r") #For testing
-        assignments, solution = run_dp(file)#For testing
+        assignments, solution = run_dp(file,heuristic)#For testing
         #for i in range(30000000): 30 million actions to take around 1 second?
         #    i = 0
         if solution:
@@ -584,7 +627,9 @@ if __name__ == "__main__":
 
         if solution:
             display_values(final_assignment_dictionary)
-        print("Runtime not including display matrix: " + str((t2 - t1)))  # * 1000))
+            print("Amount of splits: ", amount_of_splits)
+            print("Amount of backtracks: ", amount_of_backtracks)
+            print("Runtime not including display matrix: " + str((t2 - t1)))  # * 1000))
 
         print("Error: No arguments were given")
         sys.exit(1)
