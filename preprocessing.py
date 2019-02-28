@@ -79,6 +79,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         sudoku_puzzle = open("./" + sys.argv[1], "r")
     else:
+        #sudoku_puzzle = open("./damnhard.sdk.txt", "r")
         sudoku_puzzle = open("./top95.sdk.txt", "r")
 
     dimacs_puzzle,n2_clauses = encode_dimacs(sudoku_puzzle)
