@@ -34,12 +34,13 @@ def read_dimacs2(dimacs_format):
 def encode_dimacs(sudoku_puzzles):
 
     puzzles = []
-    amount_clauses = 0
+    n_clauses = []
 
     for puzzle in sudoku_puzzles: #Every puzzle is a line of 81 characters
         encoded_puzzle = ""
         row = 1
         column = 1
+        amount_clauses = 0
         for element in list(puzzle)[:-1]: #Dont include "\n"
             if element != ".":
                 clause_line = str(row) + str(column) + element + " 0\n"
@@ -51,9 +52,33 @@ def encode_dimacs(sudoku_puzzles):
                 row += 1
                 column = 1
         puzzles.append(encoded_puzzle)
-        break #Testing on 1 puzzle only now
+        n_clauses.append(amount_clauses)
+        
 
-    return puzzles,amount_clauses
+    return puzzles, n_clauses
+
+def write_puzzle(puzzle, number_clauses):
+    sudoku_rules = open("./sudoku-rules.txt","r")
+    rules = sudoku_rules.readlines()
+    n_clauses = 0
+    variables = set()
+    rule_clauses = ""
+    for line in rules:
+        if not ("p" and "c") in line:
+            n_clauses += 1
+            rule_clauses += line
+            for literal in line.split()[:-1]:
+                if "-" in literal:
+                    literal = literal[1:]
+                if literal not in variables:
+                    variables.add(literal)
+                    
+    total_clauses = n_clauses + number_clauses
+
+    input_file = open("./sudoku.cnf","w")
+    input_file.write("p cnf " + str(len(variables)) + " " + str(total_clauses) + "\n")
+    input_file.write(rule_clauses)
+    input_file.write(puzzle)
 
 
 if __name__ == "__main__":
