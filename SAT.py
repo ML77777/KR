@@ -18,7 +18,10 @@ n_negative_assign = 0
 vsids_counter = Counter()
 clauses_learned = 0
 #amount_filled_in_neighboorhood = 0
-
+original_info = [] #Number of clauses, number of variables (729, in literal dict is 1458 as with negation for 9x9 sudoku), initial_filled]
+info_before_loop = []  #Number of clauses left, number of variables left in literal dict, amount_variables assigned
+                    # number of variables left, so is 1458 - literal assigned or (amount_ variables assigned *2)
+                    #amount variables assigned, is abs_literal = value, so also its negation is determined, so times 2 if count its negation.
 #How many filled in the puzzle
 #How many clauses after initial propagation
 
@@ -42,7 +45,7 @@ def read_dimacs(dimacs_file):
 
         #print(list(map(int,clause)))   #In case to convert every element to actual integer
 
-    print("Amount of variables and amount of clauses:",n_variables,len(clauses))
+    #print("Amount of variables and amount of clauses:",n_variables,len(clauses))
 
     return n_variables,n_clauses,clauses
 
@@ -523,6 +526,10 @@ def run_dp(dimacs_file,heuristic=1):
         n_variables, n_clauses, set_clauses = read_dimacs(dimacs_file) #Extract from dimacs file
         clauses_dict, literal_dict, assign_dict = store_clauses(set_clauses) #Store clauses,literals in dictionaries and also find unit clauses assignments
 
+        global original_info
+        original_info = [n_clauses, n_variables, len(assign_dict["new_changes"])]
+        print("Initial info, amount of clauses, variables, amount filled in", original_info)
+
         print("-" * 175)
         print(len(clauses_dict), len(literal_dict), len(assign_dict)-3)
         new_clauses_dict, new_literal_dict, new_assign_dict,failure_found = process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses,heuristic) #Process the assignments that were found
@@ -536,6 +543,9 @@ def run_dp(dimacs_file,heuristic=1):
         #Check for tautology once
         new_clauses_dict, new_literal_dict, new_assign_dict = check_tautology(new_clauses_dict,new_literal_dict,new_assign_dict)
 
+        global info_before_loop
+        info_before_loop = [len(clauses_dict), len(literal_dict), len(assign_dict) - 3]
+        print("Info before loop, amount clauses left, amount literals unassigned, amount of variables assigned", info_before_loop)
         update_print(new_clauses_dict, new_literal_dict, new_assign_dict, n_clauses, n_variables)
 
         unassigned_literals = []
@@ -617,7 +627,7 @@ def display_values(assign_dict):
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         t1 = time.time()
-        heuristic = 2
+        heuristic = 1
         #file = open("./input_file2.cnf","r") #Damnhard.sdk.text first one
         file = open("./input_file.cnf","r") #Top95.sdk.text first one
         found_solution = run_dp(file,heuristic)#For testing
