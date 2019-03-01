@@ -17,6 +17,10 @@ n_negative_assign = 0
 n_assignments_solution = 0
 vsids_counter = Counter()
 clauses_learned = 0
+amount_filled_in_neighboorhood = 0
+
+#How many filled in the puzzle
+#How many clauses after initial propagation
 
 def read_dimacs(dimacs_file):
 
@@ -65,7 +69,7 @@ def try_simplify(clauses_dict,literal_dict,assign_dict):
             assign_dict["new_changes"][abs_literal] = value #Since it does not affect others, can directly assign to it
             easy_case = True
             #For vsids
-            vsids_literal_counter
+            #vsids_literal_counter
 
     #Check for unit clause, (also check for contradiction, otherwise infinite loop because of putting it into new changes)
     for clause_id, clause in list(clauses_dict.items()):
@@ -112,7 +116,7 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
     for clause_id in pos_or_neg_claus_ids:
 
         if heuristic == 3: #2e manier van literal update van clause
-            update_literal_count_v2(clause_id,clauses_dict,literal)
+           update_literal_count_v2(clause_id,clauses_dict,literal)
 
         # All clauses are immediately satisfied, so can be neglected
         if literal_value == check_value:
@@ -124,6 +128,8 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                     literal_dict[literal_to_update].remove(clause_id)
             if clauses_dict.pop(clause_id,None) is not None:
                 assign_dict["satis_counter"] += 1
+            #if heuristic == 3:  # 2e manier van literal update van clause
+            #    update_literal_count_v2(clause_id, clauses_dict, literal)
         else:
             #Cases where the opposite version of literal is false, check for cases when amount_literals is 1, 2 or more
             literals_in_clause = clauses_dict.get(clause_id,[])
@@ -585,7 +591,7 @@ def display_values(assign_dict):
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         t1 = time.time()
-        heuristic = 3
+        heuristic = 4
         #file = open("./input_file2.cnf","r") #Damnhard.sdk.text first one
         file = open("./input_file.cnf","r") #Top95.sdk.text first one
         found_solution = run_dp(file,heuristic)#For testing
