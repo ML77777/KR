@@ -14,10 +14,10 @@ amount_of_backtracks = 0
 amount_of_splits = 0
 n_positive_assign = 0
 n_negative_assign = 0
-n_assignments_solution = 0
+#n_assignments_solution = 0
 vsids_counter = Counter()
 clauses_learned = 0
-amount_filled_in_neighboorhood = 0
+#amount_filled_in_neighboorhood = 0
 
 #How many filled in the puzzle
 #How many clauses after initial propagation
@@ -59,10 +59,14 @@ def try_simplify(clauses_dict,literal_dict,assign_dict):
             opposite = literal[1:]
             abs_literal = opposite
             value = 0
+            global n_negative_assign
+            n_negative_assign += 1
         else:
             opposite = "-" + literal
             abs_literal = literal
             value = 1
+            global n_positive_assign
+            n_positive_assign += 1
 
         opposite_value = literal_dict.get(opposite,None)
         if opposite_value is None:
@@ -117,6 +121,9 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
 
         if heuristic == 3: #2e manier van literal update van clause
            update_literal_count_v2(clause_id,clauses_dict,literal)
+        else:
+            global clauses_learned
+            clauses_learned += 1
 
         # All clauses are immediately satisfied, so can be neglected
         if literal_value == check_value:
@@ -156,9 +163,13 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                 if "-" == new_literal[0]:
                     new_literal = new_literal[1:]
                     assign_dict["new_changes"] = {new_literal: 0}
+                    global n_negative_assign
+                    n_negative_assign += 1
                     #copy_assign_dict["new_changes"] = {new_literal: 0}
                 else:
                     assign_dict["new_changes"] = {new_literal: 1}
+                    global n_positive_assign
+                    n_positive_assign += 1
                     #copy_assign_dict["new_changes"] = {new_literal: 1}
 
                 clauses_dict, literal_dict, assign_dict, failure_found = process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses,heuristic)
@@ -268,9 +279,12 @@ def store_clauses(initial_clauses):
             if "-" == unit_clause[0]:
                 unit_clause = unit_clause[1:]
                 new_changes[unit_clause] = 0    #If negative like -112 then take 112 and say it is false with 0
+                global n_negative_assign
+                n_negative_assign += 1
             else:
                 new_changes[unit_clause] = 1    # If positive literal, assign it a 1 for true
-
+                global n_positive_assign
+                n_positive_assign += 1
             satisfied_counter += 1
             continue
 
@@ -462,6 +476,12 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
         copy_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
 
         literal, value_picked,other_value,unassigned_literals,failure_found = split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_dict,assign_dict)
+        global n_positive_assign
+        global n_negative_assign
+        if value_picked == 0:
+            n_negative_assign += 1
+        else:
+            n_positive_assign += 1
 
         if failure_found:
             return clauses_dict,literal_dict,assign_dict,failure_found
@@ -480,6 +500,10 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
             #copy2_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
             #copy2_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
             #copy2_assign_dict["new_changes"] = {literal: other_value}
+            if other_value == 0:
+                n_negative_assign += 1
+            else:
+                n_positive_assign += 1
 
             assign_dict["new_changes"] = {literal: other_value}
             new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(clauses_dict,literal_dict,assign_dict, n_clauses,split_level + 1,unassigned_literals,heuristic)
@@ -530,7 +554,7 @@ def run_dp(dimacs_file,heuristic=1):
                 if pos_literal not in assign_dict:
                     unassigned_literals.append(pos_literal)
                     unassigned_literals.append(neg_literal)
-            elif literal not in assign_dict:
+            elif heuristic == 3 and literal not in assign_dict:
                 unassigned_literals.append(literal)
 
         random.shuffle(unassigned_literals)
@@ -559,6 +583,8 @@ def update_print(clauses_dict,literal_dict,assign_dict,n_clauses, n_variables,fa
     print(len(clauses_dict), len(literal_dict), len(assign_dict) - 3, failure_found)
     print("Amount Variables and assigned ", n_variables, assign_dict["assign_counter"])
     print("Amount clauses and Satisfied clauses:", n_clauses, assign_dict["satis_counter"])
+    print("Amount positive and negative assignments:", n_positive_assign, n_negative_assign)
+    print("Amount of clauses encountered", clauses_learned)
 
 def display_values(assign_dict):
     print("-" * 175)
@@ -591,7 +617,7 @@ def display_values(assign_dict):
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         t1 = time.time()
-        heuristic = 4
+        heuristic = 2
         #file = open("./input_file2.cnf","r") #Damnhard.sdk.text first one
         file = open("./input_file.cnf","r") #Top95.sdk.text first one
         found_solution = run_dp(file,heuristic)#For testing
@@ -601,6 +627,8 @@ if __name__ == "__main__":
             display_values(final_assignment_dictionary)
             print("Amount of splits: ", amount_of_splits)
             print("Amount of backtracks: ", amount_of_backtracks)
+            print("Amount positive and negative assignments:", n_positive_assign, n_negative_assign)
+            print("Amount of clauses encountered", clauses_learned)
             print("Runtime not including display matrix: " + str((t2 - t1)))  # * 1000))
             #file = open("./output_file.cnf", "w")
             #for assign in l:
