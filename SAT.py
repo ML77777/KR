@@ -590,25 +590,25 @@ def run_dp(dimacs_file,heuristic=1):
 
         global original_info
         original_info = [n_clauses, n_variables, len(assign_dict["new_changes"])]
-        print("Initial info, amount of clauses, variables, amount filled in", original_info)
+        #print("Initial info, amount of clauses, variables, amount filled in", original_info)
 
-        print("-" * 175)
-        print(len(clauses_dict), len(literal_dict), len(assign_dict)-3)
+        #print("-" * 175)
+        #print(len(clauses_dict), len(literal_dict), len(assign_dict)-3)
         new_clauses_dict, new_literal_dict, new_assign_dict,failure_found = process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses,heuristic) #Process the assignments that were found
 
         if failure_found:
             print("-" * 175)
             raise NoSolutionFound()
 
-        update_print(new_clauses_dict,new_literal_dict,new_assign_dict,n_clauses,n_variables,failure_found)
+        #update_print(new_clauses_dict,new_literal_dict,new_assign_dict,n_clauses,n_variables,failure_found)
 
         #Check for tautology once
         new_clauses_dict, new_literal_dict, new_assign_dict = check_tautology(new_clauses_dict,new_literal_dict,new_assign_dict)
 
         global info_before_loop
         info_before_loop = [len(clauses_dict), len(literal_dict), len(assign_dict) - 3]
-        print("Info before loop, amount clauses left, amount literals unassigned, amount of variables assigned", info_before_loop)
-        update_print(new_clauses_dict, new_literal_dict, new_assign_dict, n_clauses, n_variables)
+        #print("Info before loop, amount clauses left, amount literals unassigned, amount of variables assigned", info_before_loop)
+        #update_print(new_clauses_dict, new_literal_dict, new_assign_dict, n_clauses, n_variables)
 
         unassigned_literals = []
 
@@ -635,12 +635,13 @@ def run_dp(dimacs_file,heuristic=1):
         new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(new_clauses_dict,new_literal_dict,new_assign_dict,n_clauses,1,unassigned_literals,heuristic)
 
     except SolutionFound:
-        print("-" * 175)
-        print("A solution has been found")
+        #print("-" * 175)
+        #print("A solution has been found")
         solution = True
     except NoSolutionFound:
-        print("-" * 175)
-        print("Early contradiction found, no solution")
+        solution = False
+        #print("-" * 175)
+        #print("Early contradiction found, no solution")
 
     return solution
 
@@ -684,7 +685,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         t1 = time.time()
-        heuristic = 8
+        heuristic = 5
         #file = open("./input_file2.cnf","r") #Damnhard.sdk.text first one
         file = open("./input_file.cnf","r") #Top95.sdk.text first one
         found_solution = run_dp(file,heuristic)#For testing
