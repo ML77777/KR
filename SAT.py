@@ -1,5 +1,5 @@
 
-import sys, time,random, copy
+import sys, time,random, copy,numpy as np
 from operator import itemgetter
 from collections import Counter
 
@@ -22,8 +22,7 @@ original_info = [] #Number of clauses, number of variables (729, in literal dict
 info_before_loop = []  #Number of clauses left, number of variables left in literal dict, amount_variables assigned
                     # number of variables left, so is 1458 - literal assigned or (amount_ variables assigned *2)
                     #amount variables assigned, is abs_literal = value, so also its negation is determined, so times 2 if count its negation.
-#How many filled in the puzzle
-#How many clauses after initial propagation
+total_runtime = 0
 
 def read_dimacs(dimacs_file):
 
@@ -330,7 +329,7 @@ def update_literal_count(clauses_ids,clauses_dict):
 """
 
 #"""
-def update_literal_count_v2(clause_id,clauses_dict,correspond_literal):
+def update_literal_count_v2(clause_id,clauses_dict,correspond_literal): #For VSIDS
 
     global clauses_learned
     decay = False
@@ -350,6 +349,19 @@ def update_literal_count_v2(clause_id,clauses_dict,correspond_literal):
             vsids_counter[literal] *= k
 #"""
 
+def check_ties(sorted_list):
+    max_value = sorted_list[0][1]
+    max_list = []
+    for literal, value in sorted_list:
+        if value == max_value:
+            max_list.append(literal)
+        else:
+            break
+
+    literal = random.choice(max_list)  # Random when there are ties, else 1 option
+
+    return literal
+
 def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_dict,assign_dict):
     failure_found = False
 
@@ -367,16 +379,7 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
 
         if len(literal_counts) > 0:
             sorted_literal_counts = sorted(literal_counts, key=itemgetter(1),reverse=True)
-            max_value = sorted_literal_counts[0][1]
-            max_list = []
-            for literal,count in sorted_literal_counts:
-                if count == max_value:
-                    max_list.append(literal)
-                else:
-                    break
-
-            literal = random.choice(max_list) #Random when there are ties, else 1 option
-            #literal = sorted_literal_counts[0][0]
+            literal = check_ties(sorted_literal_counts)
             unassigned_literals.remove(literal)
 
             if literal[0] == "-":
@@ -387,7 +390,7 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
                 value_picked = 1
                 other_value = 0
 
-    elif heuristic == 2 or heuristic == 4: #Jeroslow Wang, one sided and two sided respectively
+    elif heuristic == 2 or heuristic == 4 or (heuristic > 4 and heuristic < 9): #Jeroslow Wang, one sided and two sided respectively
 
         if len(unassigned_literals) == 0:
             return None, None, None, None, True
@@ -410,11 +413,14 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
             clause_ids = literal_dict[unassigned_literal]
             for clause_id in clause_ids:
                 clause = clauses_dict[clause_id]
-                score += 2 ** -len(clause)
+                if heuristic == 2 or heuristic == 4:
+                    score += 2 ** -len(clause)
+                else: #Heuristic 5,6,7,8
+                    score += len(clause)
 
-            if heuristic == 2:
+            if heuristic == 2 or heuristic == 5 or heuristic == 7: #One sided
                 score_list[unassigned_literal] =  score
-            else: #Two sided, so combine score and check which score is higher
+            else: #Two sided, so combine score and check which score is higher, which are 4,6 and 8
 
                 opposite_score = score_list.get(opposite, None)
                 if opposite_score is not None:
@@ -431,34 +437,62 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
                 else:
                     score_list[unassigned_literal] = score
         if len(total_score_twos_sided) > 0:
-            sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1),reverse=True)
+            if heuristic == 4:
+                sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1),reverse=True)
+            else:
+                sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1)) #Two sided, 6 and 8. Dont reverse
             #print("0 index", sorted_list_two_sided[0])
             #print("laatste index", sorted_list_two_sided[-1])
             #input()
-            max_value = sorted_list_two_sided[0][1]
-            max_list = []
-            for literal,score,v1,v2, in sorted_list_two_sided:
-                if score == max_value:
-                    max_list.append((literal,score,v1,v2))
-                else:
-                    break
-            literal, score, value_picked, other_value = random.choice(max_list)
-            #literal, score, value_picked, other_value = sorted_list_two_sided[0]
+            if heuristic == 8: #Probabilistic version of 5
+                new = []
+                sum = 0
+                for literal, score,value_picked,other_value in sorted_list_two_sided:
+                    new.append((literal, 2 ** -score,value_picked,other_value))
+                    sum += 2 ** -score
+                prob_list = []
+                literal_list = []
+                lit_values = {}
+                for literal, score,v1,v2 in new:
+                    prob_list.append(score / sum)
+                    literal_list.append(literal)
+                    lit_values[literal] = (v1,v2)
+                literal = np.random.choice(literal_list, 1, p=prob_list)[0]
+                value_picked,other_value = lit_values[literal]
+            else:
+                max_value = sorted_list_two_sided[0][1]
+                max_list = []
+                for literal,score,v1,v2, in sorted_list_two_sided:
+                    if score == max_value:
+                        max_list.append((literal,score,v1,v2))
+                    else:
+                        break
+                literal, score, value_picked, other_value = random.choice(max_list)
+
         elif len(score_list) > 0:
-            #if heuristic == 2:
-            score_list = sorted(list(score_list.items()), key=itemgetter(1),reverse=True)
+            if heuristic == 2:
+                score_list = sorted(list(score_list.items()), key=itemgetter(1),reverse=True)
+            else:
+                score_list = sorted(list(score_list.items()), key=itemgetter(1)) #One sided 5,7 dont reverse
             #print("0 index",score_list[0])
             #print("laatste index", score_list[-1])
             #input()
-            max_value = score_list[0][1]
-            max_list = []
-            for literal,score in score_list:
-                if score == max_value:
-                    max_list.append(literal)
-                else:
-                    break
-            literal = random.choice(max_list)
-            #literal = score_list[0][0]
+            if heuristic == 7: #Probabilistic version of 5
+                new = []
+                sum = 0
+                for literal, score in score_list:
+                    new.append((literal, 2 ** -score))
+                    sum += 2 ** -score
+                prob_list = []
+                literal_list = []
+
+                for literal, score in new:
+                    prob_list.append(score / sum)
+                    literal_list.append(literal)
+                literal = np.random.choice(literal_list, 1, p=prob_list)[0]
+            else:           #heuristic 2 and 5
+                literal = check_ties(score_list)
+
             unassigned_literals.remove(literal)
 
             if literal[0] == "-":
@@ -468,85 +502,7 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
             else:
                 value_picked = 1
                 other_value = 0
-    elif heuristic == 5 or heuristic == 6: #Jeroslow Wang, one sided and two sided respectively
 
-        if len(unassigned_literals) == 0:
-            return None, None, None, None, True
-
-        score_list = {}
-        total_score_twos_sided = []
-        for unassigned_literal in unassigned_literals:
-            if unassigned_literal[0] == "-":
-                pos_literal = unassigned_literal[1:]
-                opposite = pos_literal
-            else:
-                pos_literal = unassigned_literal
-                opposite = "-" + pos_literal
-
-            if pos_literal in assign_dict:
-                unassigned_literals.remove(unassigned_literal)
-                continue
-
-            score = 0
-            clause_ids = literal_dict[unassigned_literal]
-            for clause_id in clause_ids:
-                clause = clauses_dict[clause_id]
-                #score += 2 ** -len(clause)
-                score += len(clause)
-
-            if heuristic == 5:
-                score_list[unassigned_literal] =  score
-            else: #Two sided, so combine score and check which score is higher
-
-                opposite_score = score_list.get(opposite, None)
-                if opposite_score is not None:
-                    total = score + opposite_score
-
-                    if score >= opposite_score and unassigned_literal == pos_literal:
-                        total_score_twos_sided.append( (pos_literal, total,1,0))
-                    elif score >= opposite_score and unassigned_literal[0] == "-":
-                        total_score_twos_sided.append((pos_literal, total, 0, 1))
-                    elif score < opposite_score and unassigned_literal == pos_literal:
-                        total_score_twos_sided.append((pos_literal, total, 0, 1))
-                    elif score < opposite_score and unassigned_literal[0] == "-":
-                        total_score_twos_sided.append((pos_literal, total, 1, 0))
-                else:
-                    score_list[unassigned_literal] = score
-        if len(total_score_twos_sided) > 0:
-            sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1)) #No reverse, as want smallest
-            max_value = sorted_list_two_sided[0][1]
-            max_list = []
-            for literal,score,v1,v2, in sorted_list_two_sided:
-                if score == max_value:
-                    max_list.append((literal,score,v1,v2))
-                else:
-                    break
-            literal, score, value_picked, other_value = random.choice(max_list)
-            #literal, score, value_picked, other_value = sorted_list_two_sided[0]
-        elif len(score_list) > 0:
-            #if heuristic == 2:
-            score_list = sorted(list(score_list.items()), key=itemgetter(1))    #No reverse, as want smallest
-            #print("0 index",score_list[0])
-            #print("laatste index", score_list[-1])
-            #input()
-            max_value = score_list[0][1]
-            max_list = []
-            for literal,score in score_list:
-                if score == max_value:
-                    max_list.append(literal)
-                else:
-                    break
-            literal = random.choice(max_list)
-            #literal = score_list[0][0]
-            unassigned_literals.remove(literal)
-
-            if literal[0] == "-":
-                literal = literal[1:]
-                value_picked = 0
-                other_value = 1
-            else:
-                value_picked = 1
-                other_value = 0
     else:
         literal = random.choice(unassigned_literals)     #Random, basic DP
         unassigned_literals.remove(literal)
@@ -659,7 +615,7 @@ def run_dp(dimacs_file,heuristic=1):
         for literal in list(literal_dict.keys()):
             if heuristic == 1 and "-" != literal[0] and literal not in assign_dict:
                  unassigned_literals.append(literal)
-            elif heuristic == 2 or heuristic == 4 or heuristic == 5 or heuristic == 6:
+            elif heuristic == 2 or heuristic == 4 or (heuristic > 4 and heuristic < 9):
                 if literal[0] == "-":
                     pos_literal = literal[1:]
                     neg_literal = literal
@@ -725,9 +681,10 @@ def display_values(assign_dict):
     print("\n")
 
 if __name__ == "__main__":
+
     if len(sys.argv) == 1:
         t1 = time.time()
-        heuristic = 5
+        heuristic = 8
         #file = open("./input_file2.cnf","r") #Damnhard.sdk.text first one
         file = open("./input_file.cnf","r") #Top95.sdk.text first one
         found_solution = run_dp(file,heuristic)#For testing
