@@ -91,6 +91,6 @@ if __name__ == "__main__":
     sudoku_file = "./damnhard.sdk.txt"
     n_sudokus = -1 #-1 for max
     n_seeds = 3
-    heuristic = 4
+    heuristic = 8
     output_file_name = "Results_" + sudoku_file[2:-8] + "_" + str(n_seeds) + "_h" + str(heuristic)
     experiment(n_sudokus,n_seeds,heuristic,output_file_name,sudoku_file)
