@@ -1,0 +1,4 @@
+Heuristic;Sudoku #;Seed;Solution Found;Runtime;# Splits;# Backtracks;# Positive assignments;# Negative assignments;Positive to negative assignments ratio;# Clauses learned;# Clauses at start;# Variables at start;# Initial filled;# Clauses before loop ;# Variables before loop;# Variables assigned before loop
+2_ JW one sided;1;1;Yes;136.21016311645508;55026;54988;8975341;10035296;0.8943773058612322;13671013;12005;729;17;2371;542;458
+2_ JW one sided;1;2;Yes;100.70178270339966;21394;21352;3500136;3915642;0.8938856003689817;5327637;12005;729;17;2371;542;458
+2_ JW one sided;1;3;Yes;318.87843561172485;100657;100631;16223130;18104335;0.8960909086138762;24175968;12005;729;17;2371;542;458

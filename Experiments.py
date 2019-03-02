@@ -88,9 +88,10 @@ def reset_values():
 
 if __name__ == "__main__":
     #sudoku_file = "./top95.sdk.txt"
-    sudoku_file = "./damnhard.sdk.txt"
+    #sudoku_file = "./damnhard.sdk.txt"
+    sudoku_file = "./top2365.sdk.txt"
     n_sudokus = -1 #-1 for max
-    n_seeds = 3
+    n_seeds = 5
     heuristic = 8
-    output_file_name = "Results_" + sudoku_file[2:-8] + "_" + str(n_seeds) + "_h" + str(heuristic)
+    output_file_name = "./Results/"+ "Results_" + sudoku_file[2:-8] + "_" + str(n_seeds) + "_h" + str(heuristic)
     experiment(n_sudokus,n_seeds,heuristic,output_file_name,sudoku_file)
