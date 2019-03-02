@@ -353,7 +353,7 @@ def update_literal_count_v2(clause_id,clauses_dict,correspond_literal):
 def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_dict,assign_dict):
     failure_found = False
 
-    if heuristic == 3:
+    if heuristic == 3: #VSIDS (Incomplete?)
 
         literal_counts = []
         for literal in unassigned_literals:
@@ -366,8 +366,17 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
             literal_counts.append( (literal,vsids_counter[literal]) )
 
         if len(literal_counts) > 0:
-            sorted_literal_counts = sorted(literal_counts, key=itemgetter(1))
-            literal = sorted_literal_counts[0][0]
+            sorted_literal_counts = sorted(literal_counts, key=itemgetter(1),reverse=True)
+            max_value = sorted_literal_counts[0][1]
+            max_list = []
+            for literal,count in sorted_literal_counts:
+                if count == max_value:
+                    max_list.append(literal)
+                else:
+                    break
+
+            literal = random.choice(max_list) #Random when there are ties, else 1 option
+            #literal = sorted_literal_counts[0][0]
             unassigned_literals.remove(literal)
 
             if literal[0] == "-":
@@ -378,7 +387,7 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
                 value_picked = 1
                 other_value = 0
 
-    elif heuristic == 2 or heuristic == 4: #Jeroslow Wang, one sided
+    elif heuristic == 2 or heuristic == 4: #Jeroslow Wang, one sided and two sided respectively
 
         if len(unassigned_literals) == 0:
             return None, None, None, None, True
@@ -422,12 +431,113 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
                 else:
                     score_list[unassigned_literal] = score
         if len(total_score_twos_sided) > 0:
-            sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1))
-            literal, score, value_picked, other_value = sorted_list_two_sided[0]
+            sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1),reverse=True)
+            #print("0 index", sorted_list_two_sided[0])
+            #print("laatste index", sorted_list_two_sided[-1])
+            #input()
+            max_value = sorted_list_two_sided[0][1]
+            max_list = []
+            for literal,score,v1,v2, in sorted_list_two_sided:
+                if score == max_value:
+                    max_list.append((literal,score,v1,v2))
+                else:
+                    break
+            literal, score, value_picked, other_value = random.choice(max_list)
+            #literal, score, value_picked, other_value = sorted_list_two_sided[0]
         elif len(score_list) > 0:
             #if heuristic == 2:
-            score_list = sorted(list(score_list.items()), key=itemgetter(1))
-            literal = score_list[0][0]
+            score_list = sorted(list(score_list.items()), key=itemgetter(1),reverse=True)
+            #print("0 index",score_list[0])
+            #print("laatste index", score_list[-1])
+            #input()
+            max_value = score_list[0][1]
+            max_list = []
+            for literal,score in score_list:
+                if score == max_value:
+                    max_list.append(literal)
+                else:
+                    break
+            literal = random.choice(max_list)
+            #literal = score_list[0][0]
+            unassigned_literals.remove(literal)
+
+            if literal[0] == "-":
+                literal = literal[1:]
+                value_picked = 0
+                other_value = 1
+            else:
+                value_picked = 1
+                other_value = 0
+    elif heuristic == 5 or heuristic == 6: #Jeroslow Wang, one sided and two sided respectively
+
+        if len(unassigned_literals) == 0:
+            return None, None, None, None, True
+
+        score_list = {}
+        total_score_twos_sided = []
+        for unassigned_literal in unassigned_literals:
+            if unassigned_literal[0] == "-":
+                pos_literal = unassigned_literal[1:]
+                opposite = pos_literal
+            else:
+                pos_literal = unassigned_literal
+                opposite = "-" + pos_literal
+
+            if pos_literal in assign_dict:
+                unassigned_literals.remove(unassigned_literal)
+                continue
+
+            score = 0
+            clause_ids = literal_dict[unassigned_literal]
+            for clause_id in clause_ids:
+                clause = clauses_dict[clause_id]
+                #score += 2 ** -len(clause)
+                score += len(clause)
+
+            if heuristic == 5:
+                score_list[unassigned_literal] =  score
+            else: #Two sided, so combine score and check which score is higher
+
+                opposite_score = score_list.get(opposite, None)
+                if opposite_score is not None:
+                    total = score + opposite_score
+
+                    if score >= opposite_score and unassigned_literal == pos_literal:
+                        total_score_twos_sided.append( (pos_literal, total,1,0))
+                    elif score >= opposite_score and unassigned_literal[0] == "-":
+                        total_score_twos_sided.append((pos_literal, total, 0, 1))
+                    elif score < opposite_score and unassigned_literal == pos_literal:
+                        total_score_twos_sided.append((pos_literal, total, 0, 1))
+                    elif score < opposite_score and unassigned_literal[0] == "-":
+                        total_score_twos_sided.append((pos_literal, total, 1, 0))
+                else:
+                    score_list[unassigned_literal] = score
+        if len(total_score_twos_sided) > 0:
+            sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1)) #No reverse, as want smallest
+            max_value = sorted_list_two_sided[0][1]
+            max_list = []
+            for literal,score,v1,v2, in sorted_list_two_sided:
+                if score == max_value:
+                    max_list.append((literal,score,v1,v2))
+                else:
+                    break
+            literal, score, value_picked, other_value = random.choice(max_list)
+            #literal, score, value_picked, other_value = sorted_list_two_sided[0]
+        elif len(score_list) > 0:
+            #if heuristic == 2:
+            score_list = sorted(list(score_list.items()), key=itemgetter(1))    #No reverse, as want smallest
+            #print("0 index",score_list[0])
+            #print("laatste index", score_list[-1])
+            #input()
+            max_value = score_list[0][1]
+            max_list = []
+            for literal,score in score_list:
+                if score == max_value:
+                    max_list.append(literal)
+                else:
+                    break
+            literal = random.choice(max_list)
+            #literal = score_list[0][0]
             unassigned_literals.remove(literal)
 
             if literal[0] == "-":
@@ -499,10 +609,7 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
         if failure_found:
             global amount_of_backtracks
             amount_of_backtracks += 1
-            #copy2_assign_dict = {key: value_assign for (key, value_assign) in assign_dict.items() if  key != "new_changes"}
-            #copy2_clauses_dict = {clause_id: clause.copy() for (clause_id, clause) in clauses_dict.items()}
-            #copy2_literal_dict = {literal: list_ids.copy() for (literal, list_ids) in literal_dict.items()}
-            #copy2_assign_dict["new_changes"] = {literal: other_value}
+
             if other_value == 0:
                 n_negative_assign += 1
             else:
@@ -510,7 +617,6 @@ def dp_loop(clauses_dict,literal_dict,assign_dict,n_clauses,split_level,unassign
 
             assign_dict["new_changes"] = {literal: other_value}
             new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(clauses_dict,literal_dict,assign_dict, n_clauses,split_level + 1,unassigned_literals,heuristic)
-            #new_clauses_dict, new_literal_dict, new_assign_dict, failure_found = dp_loop(copy2_clauses_dict, copy2_literal_dict, copy2_assign_dict, n_clauses,split_level+1,copy_unassigned_literals,heuristic)
 
         clauses_dict, literal_dict, assign_dict = new_clauses_dict, new_literal_dict, new_assign_dict
     else:
@@ -553,7 +659,7 @@ def run_dp(dimacs_file,heuristic=1):
         for literal in list(literal_dict.keys()):
             if heuristic == 1 and "-" != literal[0] and literal not in assign_dict:
                  unassigned_literals.append(literal)
-            elif heuristic == 2 or heuristic == 4:
+            elif heuristic == 2 or heuristic == 4 or heuristic == 5 or heuristic == 6:
                 if literal[0] == "-":
                     pos_literal = literal[1:]
                     neg_literal = literal
@@ -581,12 +687,6 @@ def run_dp(dimacs_file,heuristic=1):
         print("Early contradiction found, no solution")
 
     return solution
-
-#def deepcopy(a):
-#    b = {}
-#    for k, v in a.items():
-#        b[k] = v.copy()
- #   return b
 
 def update_print(clauses_dict,literal_dict,assign_dict,n_clauses, n_variables,failure_found=False):
     print("-" * 175)
@@ -627,7 +727,7 @@ def display_values(assign_dict):
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         t1 = time.time()
-        heuristic = 1
+        heuristic = 5
         #file = open("./input_file2.cnf","r") #Damnhard.sdk.text first one
         file = open("./input_file.cnf","r") #Top95.sdk.text first one
         found_solution = run_dp(file,heuristic)#For testing
