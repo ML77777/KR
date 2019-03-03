@@ -426,14 +426,27 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
                 if opposite_score is not None:
                     total = score + opposite_score
 
-                    if score >= opposite_score and unassigned_literal == pos_literal:
-                        total_score_twos_sided.append( (pos_literal, total,1,0))
-                    elif score >= opposite_score and unassigned_literal[0] == "-":
-                        total_score_twos_sided.append((pos_literal, total, 0, 1))
-                    elif score < opposite_score and unassigned_literal == pos_literal:
-                        total_score_twos_sided.append((pos_literal, total, 0, 1))
-                    elif score < opposite_score and unassigned_literal[0] == "-":
-                        total_score_twos_sided.append((pos_literal, total, 1, 0))
+                    if heuristic == 4:
+
+                        if score >= opposite_score and unassigned_literal == pos_literal:
+                            total_score_twos_sided.append( (pos_literal, total,1,0))
+                        elif score >= opposite_score and unassigned_literal[0] == "-":
+                            total_score_twos_sided.append((pos_literal, total, 0, 1))
+                        elif score < opposite_score and unassigned_literal == pos_literal:
+                            total_score_twos_sided.append((pos_literal, total, 0, 1))
+                        elif score < opposite_score and unassigned_literal[0] == "-":
+                            total_score_twos_sided.append((pos_literal, total, 1, 0))
+
+                    elif heuristic == 6 or 8:
+
+                        if score <= opposite_score and unassigned_literal == pos_literal:
+                            total_score_twos_sided.append( (pos_literal, total,1,0))
+                        elif score <= opposite_score and unassigned_literal[0] == "-":
+                            total_score_twos_sided.append((pos_literal, total, 0, 1))
+                        elif score > opposite_score and unassigned_literal == pos_literal:
+                            total_score_twos_sided.append((pos_literal, total, 0, 1))
+                        elif score > opposite_score and unassigned_literal[0] == "-":
+                            total_score_twos_sided.append((pos_literal, total, 1, 0))
                 else:
                     score_list[unassigned_literal] = score
         if len(total_score_twos_sided) > 0:
@@ -685,7 +698,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         t1 = time.time()
-        heuristic = 5
+        heuristic = 8
         #file = open("./input_file2.cnf","r") #Damnhard.sdk.text first one
         file = open("./input_file.cnf","r") #Top95.sdk.text first one
         found_solution = run_dp(file,heuristic)#For testing
