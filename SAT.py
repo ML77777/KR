@@ -30,20 +30,16 @@ def read_dimacs(dimacs_file):
     n_variables = 0
 
     #Check first two lines for the c and p lines if they are there
-    #lines = dimacs_file.readlines()
     for line in dimacs_file:
 
-        if "p" in line:
-            splitted_line = line.split()
-            n_clauses = splitted_line[-1]
-            n_variables = splitted_line[-2]
-        elif not "c" in line:
-            clause = line.split()[:-1]
-            clauses.append(clause)
-
-        #print(list(map(int,clause)))   #In case to convert every element to actual integer
-
-    #print("Amount of variables and amount of clauses:",n_variables,len(clauses))
+        if not (line.strip()[0] == "c" or line.strip()[0] == "%" or line.strip()[0] == "0" or line.strip() == "\n" or line.strip() == "0\n" or line.strip() == ""):
+            if line.strip()[0] == "p":
+                splitted_line = line.split()
+                n_clauses = splitted_line[-1]
+                n_variables = splitted_line[-2]
+            else:
+                clause = line.split()[:-1]
+                clauses.append(clause)
 
     return n_variables,n_clauses,clauses
 
@@ -73,8 +69,6 @@ def try_simplify(clauses_dict,literal_dict,assign_dict):
         if opposite_value is None:
             assign_dict["new_changes"][abs_literal] = value #Since it does not affect others, can directly assign to it
             easy_case = True
-            #For vsids
-            #vsids_literal_counter
 
     #Check for unit clause, (also check for contradiction, otherwise infinite loop because of putting it into new changes)
     for clause_id, clause in list(clauses_dict.items()):
@@ -328,7 +322,7 @@ def update_literal_count(clauses_ids,clauses_dict):
 """
 
 #"""
-def update_literal_count_v2(clause_id,clauses_dict,correspond_literal): #For VSIDS
+def update_literal_count_v2(clause_id,clauses_dict,correspond_literal):
 
     global clauses_learned
     decay = False
@@ -364,7 +358,7 @@ def check_ties(sorted_list):
 def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_dict,assign_dict):
     failure_found = False
 
-    if heuristic == 3: #VSIDS (Incomplete?)
+    if heuristic == 3: 
 
         literal_counts = []
         for literal in unassigned_literals:
