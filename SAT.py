@@ -1,5 +1,4 @@
-
-import sys, time,random, copy,numpy as np
+import sys, time, random, numpy as np
 from operator import itemgetter
 from collections import Counter
 
@@ -672,7 +671,7 @@ def display_values(assign_dict):
     l = [int(k) for (k, v) in assign_dict.items() if v == 1]
     print("length of positive ", len(l))
     l.sort()
-    print(l)
+    #print(l)
 
     #Display assignments of all literals for a 9x9 sudoku
     sudoku = []
@@ -686,7 +685,7 @@ def display_values(assign_dict):
                 list.append((check, check_assignment))
                 if (check_assignment == 1):
                     sudoku.append(value)
-            print(list)
+            #print(list)
 
     #Displaying the solution of the 9x9 sudoku puzzle
     print("\n")
@@ -696,12 +695,18 @@ def display_values(assign_dict):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 3:
+        if not  "-S" in sys.argv[1]:
+            print("Please run as: ./SAT -Sn input_file")
+            sys.exit(1)
+        else: 
+            heuristic = int(sys.argv[1][-1])
+        
+        input_file = sys.argv[2]
+        
         t1 = time.time()
-        heuristic = 8
-        #file = open("./input_file2.cnf","r") #Damnhard.sdk.text first one
-        file = open("./input_file.cnf","r") #Top95.sdk.text first one
-        found_solution = run_dp(file,heuristic)#For testing
+        file = open(input_file,"r")
+        found_solution = run_dp(file,heuristic)
         t2 = time.time()
 
         if found_solution:
@@ -710,14 +715,24 @@ if __name__ == "__main__":
             print("Amount of backtracks: ", amount_of_backtracks)
             print("Amount positive and negative assignments:", n_positive_assign, n_negative_assign)
             print("Amount of clauses encountered", clauses_learned)
-            print("Runtime not including display matrix: " + str((t2 - t1)))  # * 1000))
-            #file = open("./output_file.cnf", "w")
-            #for assign in l:
-            #    file.write(str(assign) + " " + "\n"
+            print("Runtime not including display matrix: " + str((t2 - t1)*1000) + " ms")
+            
+            del final_assignment_dictionary["new_changes"]
+            del final_assignment_dictionary["assign_counter"]
+            del final_assignment_dictionary["satis_counter"]
+            
+            output_file = open(input_file + ".out","w")
+            output_file.write("p cnf " + str(len(final_assignment_dictionary)) + " " + str(len(final_assignment_dictionary)) + "\n")
+            
+            final_assignment = [(k,v) for k, v in final_assignment_dictionary.items()]
+            final_assignment.sort(key=lambda tup: tup[0]) 
+            for tup in final_assignment:
+                if tup[1] == 0:
+                    output_file.write("-" + str(tup[0])  + " 0\n")
+                else:
+                    output_file.write(str(tup[0]) + " 0\n")
         else:
             print("There was no solution")
-            # open("./output_file.cnf", "w")
-
-        print("Error: No arguments were given")
+    else:
+        print("Error: Not enough arguments were given. Run as ./SAT -Sn input_file")
         sys.exit(1)
-    run_dp(sys.argv[2])

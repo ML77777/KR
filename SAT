@@ -1,0 +1,4 @@
+#!/bin/bash
+VAR1=$1
+VAR2=$2
+python3 ./SAT.py $VAR1 $VAR2
