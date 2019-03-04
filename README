@@ -1,6 +1,7 @@
 
 
-
+Run as follows:
+./SAT -Sn input_file_name
 
 Heuristics arguments numbers:
 
