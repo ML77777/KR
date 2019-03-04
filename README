@@ -1,0 +1,16 @@
+
+
+
+
+Heuristics arguments numbers:
+
+1 Random, basic DP
+2 Jeroslow Wang one sided     	
+3 Jeroslow Wang two sided	
+4 MCML1 				
+5 MCML2
+6 PMCML1
+7 PMCML2 
+
+
+2 and 3 takes a long time on Sudoku, the others almost instant. 

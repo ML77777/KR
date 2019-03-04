@@ -114,11 +114,8 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
 
     for clause_id in pos_or_neg_claus_ids:
 
-        if heuristic == 3: #2e manier van literal update van clause
-           update_literal_count_v2(clause_id,clauses_dict,literal)
-        else:
-            global clauses_learned
-            clauses_learned += 1
+        global clauses_learned
+        clauses_learned += 1
 
         # All clauses are immediately satisfied, so can be neglected
         if literal_value == check_value:
@@ -130,8 +127,7 @@ def check_clauses(literal,literal_value,pos_or_neg_claus_ids,pos_or_neg, clauses
                     literal_dict[literal_to_update].remove(clause_id)
             if clauses_dict.pop(clause_id,None) is not None:
                 assign_dict["satis_counter"] += 1
-            #if heuristic == 3:  # 2e manier van literal update van clause
-            #    update_literal_count_v2(clause_id, clauses_dict, literal)
+
         else:
             #Cases where the opposite version of literal is false, check for cases when amount_literals is 1, 2 or more
             literals_in_clause = clauses_dict.get(clause_id,[])
@@ -205,8 +201,6 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses,heuristi
             literal_dict.pop(literal, None)
             literal_dict.pop(neg_literal, None)
 
-            #if heuristic == 3:
-            #    update_literal_count(pos_clauses_ids,clauses_dict)
             #For clauses with positive version of literal
             clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(literal,new_value,pos_clauses_ids,1,clauses_dict, literal_dict, assign_dict,n_clauses,heuristic)
 
@@ -215,8 +209,6 @@ def process_assignments(clauses_dict,literal_dict,assign_dict,n_clauses,heuristi
                 #print("punt 1 in process")
                 break
 
-            #if heuristic == 3:
-            #    update_literal_count(neg_clauses_ids,clauses_dict)
             # For clauses with negative version of literal
             clauses_dict, literal_dict, assign_dict, failure_found = check_clauses(neg_literal,new_value, neg_clauses_ids, 0, clauses_dict, literal_dict, assign_dict,n_clauses,heuristic)
 
@@ -358,33 +350,8 @@ def check_ties(sorted_list):
 def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_dict,assign_dict):
     failure_found = False
 
-    if heuristic == 3: 
-
-        literal_counts = []
-        for literal in unassigned_literals:
-            if literal in assign_dict:
-                unassigned_literals.remove(literal)
-                continue
-
-            if len(unassigned_literals) == 0:
-                return None, None, None, None, True
-            literal_counts.append( (literal,vsids_counter[literal]) )
-
-        if len(literal_counts) > 0:
-            sorted_literal_counts = sorted(literal_counts, key=itemgetter(1),reverse=True)
-            literal = check_ties(sorted_literal_counts)
-            unassigned_literals.remove(literal)
-
-            if literal[0] == "-":
-                literal = literal[1:]
-                value_picked = 0
-                other_value = 1
-            else:
-                value_picked = 1
-                other_value = 0
-
-    elif heuristic == 2 or heuristic == 4 or (heuristic > 4 and heuristic < 9): #Jeroslow Wang, one sided and two sided respectively
-
+    if heuristic == 2 or heuristic == 3 or (heuristic > 3 and heuristic < 8): #Jeroslow Wang, one sided and two sided respectively on 2 and 3
+                                                                               #MCML1 on 4, MCML2 on 5, PMCML1 on 6 and PMCML2 on 7
         if len(unassigned_literals) == 0:
             return None, None, None, None, True
 
@@ -406,20 +373,20 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
             clause_ids = literal_dict[unassigned_literal]
             for clause_id in clause_ids:
                 clause = clauses_dict[clause_id]
-                if heuristic == 2 or heuristic == 4:
+                if heuristic == 2 or heuristic == 3:
                     score += 2 ** -len(clause)
-                else: #Heuristic 5,6,7,8
+                else: #Heuristic 4,5,6,8
                     score += len(clause)
 
-            if heuristic == 2 or heuristic == 5 or heuristic == 7: #One sided
+            if heuristic == 2 or heuristic == 4 or heuristic == 6: #One sided
                 score_list[unassigned_literal] =  score
-            else: #Two sided, so combine score and check which score is higher, which are 4,6 and 8
+            else: #Two sided, so combine score and check which score is higher, which are 3,5 and 7
 
                 opposite_score = score_list.get(opposite, None)
                 if opposite_score is not None:
                     total = score + opposite_score
 
-                    if heuristic == 4:
+                    if heuristic == 3:
 
                         if score >= opposite_score and unassigned_literal == pos_literal:
                             total_score_twos_sided.append( (pos_literal, total,1,0))
@@ -430,7 +397,7 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
                         elif score < opposite_score and unassigned_literal[0] == "-":
                             total_score_twos_sided.append((pos_literal, total, 1, 0))
 
-                    elif heuristic == 6 or 8:
+                    elif heuristic == 5 or 7:
 
                         if score <= opposite_score and unassigned_literal == pos_literal:
                             total_score_twos_sided.append( (pos_literal, total,1,0))
@@ -443,14 +410,14 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
                 else:
                     score_list[unassigned_literal] = score
         if len(total_score_twos_sided) > 0:
-            if heuristic == 4:
+            if heuristic == 3:
                 sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1),reverse=True)
             else:
-                sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1)) #Two sided, 6 and 8. Dont reverse
+                sorted_list_two_sided = sorted(total_score_twos_sided, key=itemgetter(1)) #Two sided, 5 and 7. Dont reverse
             #print("0 index", sorted_list_two_sided[0])
             #print("laatste index", sorted_list_two_sided[-1])
             #input()
-            if heuristic == 8: #Probabilistic version of 5
+            if heuristic == 7: #Probabilistic version
                 new = []
                 sum = 0
                 for literal, score,value_picked,other_value in sorted_list_two_sided:
@@ -479,11 +446,9 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
             if heuristic == 2:
                 score_list = sorted(list(score_list.items()), key=itemgetter(1),reverse=True)
             else:
-                score_list = sorted(list(score_list.items()), key=itemgetter(1)) #One sided 5,7 dont reverse
-            #print("0 index",score_list[0])
-            #print("laatste index", score_list[-1])
-            #input()
-            if heuristic == 7: #Probabilistic version of 5
+                score_list = sorted(list(score_list.items()), key=itemgetter(1)) #One sided 4,6 dont reverse
+
+            if heuristic == 6: #Probabilistic version of 4
                 new = []
                 sum = 0
                 for literal, score in score_list:
@@ -496,7 +461,7 @@ def split_values_heuristic(heuristic,unassigned_literals,clauses_dict,literal_di
                     prob_list.append(score / sum)
                     literal_list.append(literal)
                 literal = np.random.choice(literal_list, 1, p=prob_list)[0]
-            else:           #heuristic 2 and 5
+            else:           #heuristic 2 and 4
                 literal = check_ties(score_list)
 
             unassigned_literals.remove(literal)
@@ -621,7 +586,7 @@ def run_dp(dimacs_file,heuristic=1):
         for literal in list(literal_dict.keys()):
             if heuristic == 1 and "-" != literal[0] and literal not in assign_dict:
                  unassigned_literals.append(literal)
-            elif heuristic == 2 or heuristic == 4 or (heuristic > 4 and heuristic < 9):
+            elif heuristic == 2 or heuristic == 3 or (heuristic > 3 and heuristic < 8):
                 if literal[0] == "-":
                     pos_literal = literal[1:]
                     neg_literal = literal
@@ -632,8 +597,6 @@ def run_dp(dimacs_file,heuristic=1):
                 if pos_literal not in assign_dict:
                     unassigned_literals.append(pos_literal)
                     unassigned_literals.append(neg_literal)
-            elif heuristic == 3 and literal not in assign_dict:
-                unassigned_literals.append(literal)
 
         random.shuffle(unassigned_literals)
 
@@ -707,7 +670,6 @@ if __name__ == "__main__":
             display_values(final_assignment_dictionary)
             print("Amount of splits: ", amount_of_splits)
             print("Amount of backtracks: ", amount_of_backtracks)
-            print("Amount positive and negative assignments:", n_positive_assign, n_negative_assign)
             print("Amount of clauses encountered", clauses_learned)
             print("Runtime not including display matrix: " + str((t2 - t1)*1000) + " ms")
             
